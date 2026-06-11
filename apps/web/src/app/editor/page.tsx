@@ -4,14 +4,41 @@ import {
   Home, Video, Clapperboard, Type, Crop, PlaySquare, 
   BarChart2, Users, Settings as SettingsIcon, HelpCircle, Bell, 
   Download, Upload, Filter, Plus, ChevronDown, Monitor, 
-  RotateCw, Play, SkipBack, SkipForward, Maximize2, 
+  RotateCw, Play, Pause, SkipBack, SkipForward, Maximize2, 
   MousePointer2, Undo, Redo, Scissors, Trash2, SplitSquareHorizontal, Eye, Lock
 } from 'lucide-react';
-import { useState } from 'react';
+import { useState, useRef, useEffect } from 'react';
 import Link from 'next/link';
 
 export default function AdvancedNLEEditor() {
+  // Video Player State
   const [isPlaying, setIsPlaying] = useState(false);
+  const [currentTime, setCurrentTime] = useState(0);
+  const [duration, setDuration] = useState(0);
+  const videoRef = useRef<HTMLVideoElement>(null);
+
+  // Toggle Play/Pause
+  const togglePlay = () => {
+    if (videoRef.current) {
+      if (isPlaying) {
+        videoRef.current.pause();
+      } else {
+        videoRef.current.play();
+      }
+      setIsPlaying(!isPlaying);
+    }
+  };
+
+  // Format time (HH:MM:SS:FF) assuming 30fps
+  const formatTime = (timeInSeconds: number) => {
+    if (isNaN(timeInSeconds)) return "00:00:00:00";
+    const pad = (num: number, size: number) => ('000' + num).slice(size * -1);
+    const hours = Math.floor(timeInSeconds / 3600);
+    const minutes = Math.floor((timeInSeconds % 3600) / 60);
+    const seconds = Math.floor(timeInSeconds % 60);
+    const frames = Math.floor((timeInSeconds % 1) * 30);
+    return `${pad(hours, 2)}:${pad(minutes, 2)}:${pad(seconds, 2)}:${pad(frames, 2)}`;
+  };
 
   return (
     <div className="h-screen w-full bg-[#FAFAFA] text-gray-700 flex font-sans overflow-hidden">
@@ -147,13 +174,37 @@ export default function AdvancedNLEEditor() {
                <div className="absolute inset-0 opacity-20" style={{ backgroundImage: 'radial-gradient(#CBD5E1 1px, transparent 1px)', backgroundSize: '20px 20px' }}></div>
                
                {/* 16:9 Canvas container */}
-               <div className="w-full max-w-4xl aspect-video bg-black rounded-lg overflow-hidden relative shadow-xl border border-gray-300 z-10">
-                  <img src="https://images.unsplash.com/photo-1464822759023-fed622ff2c3b?w=1600&q=80" className="w-full h-full object-cover" alt="Preview" />
+               <div className="w-full max-w-4xl aspect-video bg-black rounded-lg overflow-hidden relative shadow-xl border border-gray-300 z-10 group">
                   
-                  {/* Playhead indicator bar on video */}
-                  <div className="absolute bottom-4 left-4 right-4 h-1.5 bg-white/30 rounded-full overflow-visible">
-                     <div className="absolute left-0 top-0 bottom-0 w-1/4 bg-[#F5A623] rounded-full"></div>
-                     <div className="absolute left-1/4 top-1/2 -translate-y-1/2 w-4 h-4 bg-[#F5A623] border-2 border-white rounded-full shadow-md"></div>
+                  {/* REAL VIDEO PLAYER */}
+                  <video 
+                    ref={videoRef}
+                    className="w-full h-full object-cover"
+                    src="http://commondatastorage.googleapis.com/gtv-videos-bucket/sample/BigBuckBunny.mp4"
+                    onTimeUpdate={() => {
+                      if (videoRef.current) {
+                        setCurrentTime(videoRef.current.currentTime);
+                      }
+                    }}
+                    onLoadedMetadata={() => {
+                      if (videoRef.current) {
+                        setDuration(videoRef.current.duration);
+                      }
+                    }}
+                    onEnded={() => setIsPlaying(false)}
+                    onClick={togglePlay}
+                  />
+                  
+                  {/* Playhead indicator bar on video (Interactive representation) */}
+                  <div className="absolute bottom-4 left-4 right-4 h-1.5 bg-white/30 rounded-full overflow-visible opacity-0 group-hover:opacity-100 transition-opacity">
+                     <div 
+                        className="absolute left-0 top-0 bottom-0 bg-[#F5A623] rounded-full"
+                        style={{ width: `${(currentTime / (duration || 1)) * 100}%` }}
+                     ></div>
+                     <div 
+                        className="absolute top-1/2 -translate-y-1/2 w-4 h-4 bg-[#F5A623] border-2 border-white rounded-full shadow-md -ml-2"
+                        style={{ left: `${(currentTime / (duration || 1)) * 100}%` }}
+                     ></div>
                   </div>
                </div>
             </div>
@@ -161,14 +212,35 @@ export default function AdvancedNLEEditor() {
             {/* Player Controls */}
             <div className="h-14 flex items-center justify-between px-6 bg-white border-t border-gray-200 z-10 shadow-sm">
                <div className="text-xs font-mono text-gray-500 font-medium">
-                 <span className="text-gray-900 font-bold">00:00:07:12</span> / 00:01:23:20
+                 <span className="text-gray-900 font-bold">{formatTime(currentTime)}</span> / {formatTime(duration)}
                </div>
                <div className="flex items-center gap-6">
-                 <SkipBack className="w-4 h-4 text-gray-400 hover:text-gray-900 cursor-pointer transition-colors" />
-                 <div className="w-8 h-8 bg-gray-100 rounded-full flex items-center justify-center hover:bg-gray-200 cursor-pointer transition-colors">
-                   <Play className="w-4 h-4 text-gray-900 ml-0.5" fill="currentColor" />
+                 <SkipBack 
+                   className="w-4 h-4 text-gray-400 hover:text-gray-900 cursor-pointer transition-colors" 
+                   onClick={() => {
+                     if (videoRef.current) {
+                       videoRef.current.currentTime = Math.max(0, videoRef.current.currentTime - 5);
+                     }
+                   }}
+                 />
+                 <div 
+                   className="w-8 h-8 bg-gray-100 rounded-full flex items-center justify-center hover:bg-gray-200 cursor-pointer transition-colors"
+                   onClick={togglePlay}
+                 >
+                   {isPlaying ? (
+                     <Pause className="w-4 h-4 text-gray-900" fill="currentColor" />
+                   ) : (
+                     <Play className="w-4 h-4 text-gray-900 ml-0.5" fill="currentColor" />
+                   )}
                  </div>
-                 <SkipForward className="w-4 h-4 text-gray-400 hover:text-gray-900 cursor-pointer transition-colors" />
+                 <SkipForward 
+                   className="w-4 h-4 text-gray-400 hover:text-gray-900 cursor-pointer transition-colors" 
+                   onClick={() => {
+                     if (videoRef.current) {
+                       videoRef.current.currentTime = Math.min(duration, videoRef.current.currentTime + 5);
+                     }
+                   }}
+                 />
                </div>
                <div className="flex items-center gap-4 text-xs text-gray-500 font-medium">
                   <span className="flex items-center gap-1 bg-gray-100 px-2 py-1 rounded">16:9 <ChevronDown className="w-3 h-3" /></span>
@@ -320,8 +392,11 @@ export default function AdvancedNLEEditor() {
                 ))}
              </div>
 
-             {/* Playhead */}
-             <div className="absolute top-0 bottom-0 left-[350px] w-px bg-[#F5A623] z-30 pointer-events-none shadow-[0_0_8px_rgba(245,166,35,0.8)]">
+             {/* Dynamic Playhead */}
+             <div 
+               className="absolute top-0 bottom-0 w-px bg-[#F5A623] z-30 pointer-events-none shadow-[0_0_8px_rgba(245,166,35,0.8)]"
+               style={{ left: `calc(120px + ${(currentTime / (duration || 1)) * 800}px)` }} // Mocking movement
+             >
                <div className="absolute top-0 -translate-x-1/2 w-3.5 h-4 bg-[#F5A623] rounded-b-sm flex justify-center shadow-sm">
                   <div className="w-1.5 h-1.5 mt-1 bg-white rounded-full shadow-inner" />
                </div>
@@ -356,27 +431,15 @@ export default function AdvancedNLEEditor() {
                      <span>Video 1</span>
                   </div>
                   <div className="flex-1 relative flex items-center px-2">
-                     <div className="absolute left-[20px] w-[800px] h-12 flex gap-1 cursor-pointer">
+                     <div className="absolute left-0 w-[800px] h-12 flex gap-1 cursor-pointer">
                         {/* Clip 1 */}
-                        <div className="w-[160px] h-full rounded-md overflow-hidden relative border-2 border-[#F5A623] shadow-[0_0_0_1px_rgba(245,166,35,0.3)] z-10">
-                           <img src="https://images.unsplash.com/photo-1464822759023-fed622ff2c3b?w=200&q=80" className="w-full h-full object-cover" />
+                        <div className="w-full h-full rounded-md overflow-hidden relative border-2 border-[#F5A623] shadow-[0_0_0_1px_rgba(245,166,35,0.3)] z-10">
+                           <img src="https://images.unsplash.com/photo-1464822759023-fed622ff2c3b?w=400&q=80" className="w-full h-full object-cover" />
                            <div className="absolute inset-0 bg-black/10" />
-                           <span className="absolute bottom-1 left-1 text-[9px] text-white font-semibold bg-black/50 backdrop-blur-sm px-1.5 py-0.5 rounded shadow-sm">Video_01</span>
+                           <span className="absolute bottom-1 left-1 text-[9px] text-white font-semibold bg-black/50 backdrop-blur-sm px-1.5 py-0.5 rounded shadow-sm">Big_Buck_Bunny.mp4</span>
                            {/* Handles */}
                            <div className="absolute left-0 top-0 bottom-0 w-1.5 bg-white border-r border-[#F5A623] cursor-col-resize shadow-md" />
                            <div className="absolute right-0 top-0 bottom-0 w-1.5 bg-white border-l border-[#F5A623] cursor-col-resize shadow-md" />
-                        </div>
-                        {/* Clip 2 */}
-                        <div className="w-[140px] h-full rounded-md overflow-hidden relative border border-gray-300 opacity-90 hover:opacity-100 transition-opacity shadow-sm">
-                           <img src="https://images.unsplash.com/photo-1514565131-fce0801e5785?w=200&q=80" className="w-full h-full object-cover" />
-                        </div>
-                        {/* Clip 3 */}
-                        <div className="w-[150px] h-full rounded-md overflow-hidden relative border border-gray-300 opacity-90 hover:opacity-100 transition-opacity shadow-sm">
-                           <img src="https://images.unsplash.com/photo-1573496359142-b8d87734a5a2?w=200&q=80" className="w-full h-full object-cover" />
-                        </div>
-                        {/* Clip 4 */}
-                        <div className="w-[130px] h-full rounded-md overflow-hidden relative border border-gray-300 opacity-90 hover:opacity-100 transition-opacity shadow-sm">
-                           <img src="https://images.unsplash.com/photo-1542204165-65bf26472b9b?w=200&q=80" className="w-full h-full object-cover" />
                         </div>
                      </div>
                   </div>
@@ -391,7 +454,7 @@ export default function AdvancedNLEEditor() {
                      <span>Audio 1</span>
                   </div>
                   <div className="flex-1 relative flex items-center px-2">
-                     <div className="absolute left-[20px] w-[790px] h-10 bg-green-50 border border-green-200 rounded-md flex overflow-hidden shadow-sm hover:border-green-300 transition-colors cursor-pointer">
+                     <div className="absolute left-[0px] w-[800px] h-10 bg-green-50 border border-green-200 rounded-md flex overflow-hidden shadow-sm hover:border-green-300 transition-colors cursor-pointer">
                         {/* Volume keyframe overlay mock */}
                         <div className="absolute inset-0 z-10 pointer-events-none">
                            <svg width="100%" height="100%">
@@ -400,44 +463,11 @@ export default function AdvancedNLEEditor() {
                               <circle cx="200" cy="5" r="3.5" fill="white" stroke="#22C55E" strokeWidth="1.5" />
                            </svg>
                         </div>
-                        <span className="absolute top-1 left-2 text-[9px] font-bold text-green-800 z-10 bg-white/50 px-1 rounded">Music_Loop.mp3</span>
+                        <span className="absolute top-1 left-2 text-[9px] font-bold text-green-800 z-10 bg-white/50 px-1 rounded">Audio_Track.mp3</span>
                         {/* Waveform */}
                         <svg className="w-full h-full text-green-400 opacity-60" preserveAspectRatio="none" viewBox="0 0 100 100">
                            <path d="M0 50 Q 5 20, 10 50 T 20 50 T 30 50 T 40 50 T 50 50 T 60 50 T 70 50 T 80 50 T 90 50 T 100 50" fill="currentColor"/>
                         </svg>
-                     </div>
-                  </div>
-                </div>
-
-                {/* A2 Track */}
-                <div className="flex h-14 border-b border-gray-100 hover:bg-gray-50 transition-colors">
-                  <div className="w-[120px] bg-white border-r border-gray-200 flex items-center px-3 gap-3 shrink-0 sticky left-0 z-20 text-[10px] font-semibold text-gray-500">
-                     <span className="w-4 text-gray-900">A2</span>
-                     <Lock className="w-3.5 h-3.5 hover:text-gray-900 cursor-pointer transition-colors" />
-                     <SpeakerIcon />
-                     <span>Audio 2</span>
-                  </div>
-                  <div className="flex-1 relative flex items-center px-2">
-                     <div className="absolute left-[70px] w-[740px] h-10 bg-blue-50 border border-blue-200 rounded-md flex overflow-hidden shadow-sm hover:border-blue-300 transition-colors cursor-pointer">
-                        <span className="absolute top-1 left-2 text-[9px] font-bold text-blue-800 z-10 bg-white/50 px-1 rounded">Interview_Audio.wav</span>
-                        <svg className="w-full h-full text-blue-400 opacity-60" preserveAspectRatio="none" viewBox="0 0 100 100">
-                           <path d="M0 50 Q 5 40, 10 50 T 20 50 T 30 50 T 40 50 T 50 50 T 60 50 T 70 50 T 80 50 T 90 50 T 100 50" fill="currentColor"/>
-                        </svg>
-                     </div>
-                  </div>
-                </div>
-
-                {/* T1 Track */}
-                <div className="flex h-12 border-b border-gray-100 hover:bg-gray-50 transition-colors">
-                  <div className="w-[120px] bg-white border-r border-gray-200 flex items-center px-3 gap-3 shrink-0 sticky left-0 z-20 text-[10px] font-semibold text-gray-500">
-                     <span className="w-4 text-gray-900">T1</span>
-                     <Lock className="w-3.5 h-3.5 hover:text-gray-900 cursor-pointer transition-colors" />
-                     <Type className="w-3.5 h-3.5 hover:text-gray-900 cursor-pointer transition-colors" />
-                     <span>Text 1</span>
-                  </div>
-                  <div className="flex-1 relative flex items-center px-2">
-                     <div className="absolute left-[25px] w-[180px] h-8 bg-yellow-100 border border-yellow-300 rounded-md flex items-center justify-center cursor-pointer shadow-sm hover:border-yellow-400 transition-colors">
-                        <span className="text-[10px] text-yellow-800 font-bold">Subtitle Text Here</span>
                      </div>
                   </div>
                 </div>
