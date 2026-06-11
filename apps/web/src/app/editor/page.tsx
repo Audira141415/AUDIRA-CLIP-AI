@@ -20,6 +20,21 @@ export default function AdvancedNLEEditor() {
   // Library Tab State
   const [activeLibraryTab, setActiveLibraryTab] = useState('Media');
 
+  // Properties Tab State
+  const [activePropTab, setActivePropTab] = useState('Video');
+
+  // Transform State (Interactive)
+  const [scale, setScale] = useState(100);
+  const [posX, setPosX] = useState(0);
+  const [posY, setPosY] = useState(0);
+  const [rotation, setRotation] = useState(0);
+  const [flipH, setFlipH] = useState(false);
+  const [flipV, setFlipV] = useState(false);
+
+  // Compositing State (Interactive)
+  const [blendMode, setBlendMode] = useState('normal');
+  const [opacity, setOpacity] = useState(100);
+
   // Toggle Play/Pause
   const togglePlay = () => {
     if (videoRef.current) {
@@ -56,7 +71,7 @@ export default function AdvancedNLEEditor() {
     <div className="h-screen w-full bg-[#FAFAFA] text-gray-700 flex font-sans overflow-hidden">
       
       {/* 1. LEFT GLOBAL SIDEBAR */}
-      <aside className="w-56 bg-white border-r border-gray-200 flex flex-col z-50">
+      <aside className="w-56 bg-white border-r border-gray-200 flex flex-col z-50 shrink-0">
         <div className="h-16 flex items-center px-6">
           <div className="flex items-center gap-2">
             <div className="w-5 h-5 bg-[#F5A623] rounded-sm shadow-sm"></div>
@@ -234,18 +249,23 @@ export default function AdvancedNLEEditor() {
               </div>
             </div>
 
-            <div className="flex-1 flex items-center justify-center p-6 min-h-0 relative">
+            <div className="flex-1 flex items-center justify-center p-6 min-h-0 relative overflow-hidden">
                {/* Grid Pattern Background for Canvas */}
                <div className="absolute inset-0 opacity-20" style={{ backgroundImage: 'radial-gradient(#CBD5E1 1px, transparent 1px)', backgroundSize: '20px 20px' }}></div>
                
                {/* 16:9 Canvas container */}
                <div className="w-full max-w-4xl aspect-video bg-black rounded-lg overflow-hidden relative shadow-xl border border-gray-300 z-10 group">
                   
-                  {/* REAL VIDEO PLAYER */}
+                  {/* REAL VIDEO PLAYER WITH INTERACTIVE TRANSFORM STYLES */}
                   <video 
                     ref={videoRef}
-                    className="w-full h-full object-cover bg-black"
+                    className="w-full h-full object-cover bg-black transition-transform duration-100 ease-out"
                     src="https://www.w3schools.com/html/mov_bbb.mp4"
+                    style={{
+                      transform: `translate(${posX}px, ${posY}px) scale(${scale / 100}) rotate(${rotation}deg) scaleX(${flipH ? -1 : 1}) scaleY(${flipV ? -1 : 1})`,
+                      opacity: opacity / 100,
+                      mixBlendMode: blendMode as any
+                    }}
                     onTimeUpdate={() => {
                       if (videoRef.current) {
                         setCurrentTime(videoRef.current.currentTime);
@@ -317,107 +337,166 @@ export default function AdvancedNLEEditor() {
           {/* 5. RIGHT PROPERTIES PANEL */}
           <aside className="w-[300px] bg-white flex flex-col shrink-0">
             <div className="h-14 border-b border-gray-200 flex px-4 gap-4 overflow-x-auto no-scrollbar items-end shadow-sm z-10">
-              <button className="pb-3 text-sm font-bold text-gray-900 border-b-2 border-[#F5A623]">Video</button>
-              <button className="pb-3 text-sm font-semibold text-gray-400 hover:text-gray-700 transition-colors">Audio</button>
-              <button className="pb-3 text-sm font-semibold text-gray-400 hover:text-gray-700 transition-colors">Effects</button>
-              <button className="pb-3 text-sm font-semibold text-gray-400 hover:text-gray-700 transition-colors">Adjust</button>
+              {['Video', 'Audio', 'Effects', 'Adjust'].map(tab => (
+                <button 
+                  key={tab}
+                  onClick={() => setActivePropTab(tab)}
+                  className={`pb-3 text-sm transition-colors ${activePropTab === tab ? 'font-bold text-gray-900 border-b-2 border-[#F5A623]' : 'font-semibold text-gray-400 hover:text-gray-700'}`}
+                >
+                  {tab}
+                </button>
+              ))}
             </div>
 
             <div className="flex-1 overflow-y-auto p-5 space-y-8 bg-white">
-               {/* Transform Section */}
-               <section>
-                 <h3 className="text-xs font-bold text-gray-900 uppercase tracking-wider mb-4">Transform</h3>
-                 
-                 <div className="space-y-5">
-                   <div>
-                     <div className="flex justify-between text-xs font-semibold text-gray-600 mb-2">
-                       <span>Scale</span>
-                     </div>
-                     <div className="flex items-center gap-3">
-                       <input type="range" className="flex-1 h-1.5 bg-gray-200 rounded-lg appearance-none accent-[#F5A623]" defaultValue={100} />
-                       <span className="text-xs bg-gray-50 border border-gray-200 px-2 py-1.5 rounded-md text-gray-700 font-mono min-w-[3.5rem] text-center shadow-sm">100%</span>
-                     </div>
-                   </div>
+               
+               {activePropTab === 'Video' && (
+                 <>
+                   {/* Transform Section */}
+                   <section>
+                     <h3 className="text-xs font-bold text-gray-900 uppercase tracking-wider mb-4">Transform</h3>
+                     
+                     <div className="space-y-5">
+                       <div>
+                         <div className="flex justify-between text-xs font-semibold text-gray-600 mb-2">
+                           <span>Scale</span>
+                         </div>
+                         <div className="flex items-center gap-3">
+                           <input 
+                              type="range" min="10" max="300" 
+                              value={scale} 
+                              onChange={(e) => setScale(Number(e.target.value))} 
+                              className="flex-1 h-1.5 bg-gray-200 rounded-lg appearance-none accent-[#F5A623]" 
+                           />
+                           <span className="text-xs bg-gray-50 border border-gray-200 px-2 py-1.5 rounded-md text-gray-700 font-mono min-w-[3.5rem] text-center shadow-sm">{scale}%</span>
+                         </div>
+                       </div>
 
-                   <div>
-                     <div className="flex justify-between text-xs font-semibold text-gray-600 mb-2">
-                       <span>Position</span>
-                     </div>
-                     <div className="flex gap-3">
-                        <div className="flex-1 bg-gray-50 border border-gray-200 rounded-md px-3 py-2 flex items-center justify-between shadow-sm focus-within:border-[#F5A623] focus-within:ring-1 focus-within:ring-[#F5A623]">
-                          <span className="text-xs text-gray-400 font-medium">X</span>
-                          <input type="text" defaultValue="0" className="w-10 bg-transparent text-xs text-gray-900 font-mono text-right focus:outline-none" />
-                        </div>
-                        <div className="flex-1 bg-gray-50 border border-gray-200 rounded-md px-3 py-2 flex items-center justify-between shadow-sm focus-within:border-[#F5A623] focus-within:ring-1 focus-within:ring-[#F5A623]">
-                          <span className="text-xs text-gray-400 font-medium">Y</span>
-                          <input type="text" defaultValue="0" className="w-10 bg-transparent text-xs text-gray-900 font-mono text-right focus:outline-none" />
-                        </div>
-                     </div>
-                   </div>
+                       <div>
+                         <div className="flex justify-between text-xs font-semibold text-gray-600 mb-2">
+                           <span>Position</span>
+                         </div>
+                         <div className="flex gap-3">
+                            <div className="flex-1 bg-gray-50 border border-gray-200 rounded-md px-3 py-2 flex items-center justify-between shadow-sm focus-within:border-[#F5A623] focus-within:ring-1 focus-within:ring-[#F5A623]">
+                              <span className="text-xs text-gray-400 font-medium">X</span>
+                              <input 
+                                 type="number" 
+                                 value={posX} 
+                                 onChange={(e) => setPosX(Number(e.target.value))}
+                                 className="w-12 bg-transparent text-xs text-gray-900 font-mono text-right focus:outline-none" 
+                              />
+                            </div>
+                            <div className="flex-1 bg-gray-50 border border-gray-200 rounded-md px-3 py-2 flex items-center justify-between shadow-sm focus-within:border-[#F5A623] focus-within:ring-1 focus-within:ring-[#F5A623]">
+                              <span className="text-xs text-gray-400 font-medium">Y</span>
+                              <input 
+                                 type="number" 
+                                 value={posY} 
+                                 onChange={(e) => setPosY(Number(e.target.value))}
+                                 className="w-12 bg-transparent text-xs text-gray-900 font-mono text-right focus:outline-none" 
+                              />
+                            </div>
+                         </div>
+                       </div>
 
-                   <div>
-                     <div className="flex justify-between text-xs font-semibold text-gray-600 mb-2">
-                       <span>Rotate</span>
-                     </div>
-                     <div className="flex gap-3 items-center">
-                        <div className="flex-1 bg-gray-50 border border-gray-200 rounded-md px-3 py-2 shadow-sm focus-within:border-[#F5A623] focus-within:ring-1 focus-within:ring-[#F5A623]">
-                          <input type="text" defaultValue="0°" className="w-full bg-transparent text-xs text-gray-900 font-mono focus:outline-none" />
-                        </div>
-                        <div className="w-8 h-8 rounded bg-gray-100 flex items-center justify-center border border-gray-200 shadow-sm cursor-pointer hover:bg-gray-200">
-                           <RotateCw className="w-4 h-4 text-gray-600" />
-                        </div>
-                     </div>
-                   </div>
+                       <div>
+                         <div className="flex justify-between text-xs font-semibold text-gray-600 mb-2">
+                           <span>Rotate</span>
+                         </div>
+                         <div className="flex gap-3 items-center">
+                            <div className="flex-1 bg-gray-50 border border-gray-200 rounded-md px-3 py-2 shadow-sm focus-within:border-[#F5A623] focus-within:ring-1 focus-within:ring-[#F5A623] flex items-center justify-between">
+                              <input 
+                                type="number" 
+                                value={rotation} 
+                                onChange={(e) => setRotation(Number(e.target.value))}
+                                className="w-12 bg-transparent text-xs text-gray-900 font-mono focus:outline-none" 
+                              />
+                              <span className="text-xs text-gray-500">°</span>
+                            </div>
+                            <div 
+                              className="w-8 h-8 rounded bg-gray-100 flex items-center justify-center border border-gray-200 shadow-sm cursor-pointer hover:bg-gray-200"
+                              onClick={() => setRotation(r => r + 90)}
+                            >
+                               <RotateCw className="w-4 h-4 text-gray-600" />
+                            </div>
+                         </div>
+                       </div>
 
-                   <div>
-                     <div className="flex justify-between text-xs font-semibold text-gray-600 mb-2">
-                       <span>Flip</span>
+                       <div>
+                         <div className="flex justify-between text-xs font-semibold text-gray-600 mb-2">
+                           <span>Flip</span>
+                         </div>
+                         <div className="flex gap-2">
+                            <button 
+                               onClick={() => setFlipH(!flipH)}
+                               className={`flex-1 h-9 border rounded-md flex items-center justify-center shadow-sm transition-colors ${flipH ? 'bg-orange-50 border-[#F5A623] text-[#F5A623]' : 'bg-gray-50 border-gray-200 text-gray-600 hover:text-gray-900 hover:bg-gray-100'}`}
+                            >
+                               <FlipHIcon />
+                            </button>
+                            <button 
+                               onClick={() => setFlipV(!flipV)}
+                               className={`flex-1 h-9 border rounded-md flex items-center justify-center shadow-sm transition-colors ${flipV ? 'bg-orange-50 border-[#F5A623] text-[#F5A623]' : 'bg-gray-50 border-gray-200 text-gray-600 hover:text-gray-900 hover:bg-gray-100'}`}
+                            >
+                               <FlipVIcon />
+                            </button>
+                         </div>
+                       </div>
                      </div>
-                     <div className="flex gap-2">
-                        <button className="flex-1 h-9 bg-gray-50 border border-gray-200 rounded-md flex items-center justify-center text-gray-600 hover:text-gray-900 hover:bg-gray-100 shadow-sm transition-colors">
-                           <FlipHIcon />
-                        </button>
-                        <button className="flex-1 h-9 bg-gray-50 border border-gray-200 rounded-md flex items-center justify-center text-gray-600 hover:text-gray-900 hover:bg-gray-100 shadow-sm transition-colors">
-                           <FlipVIcon />
-                        </button>
+                   </section>
+
+                   <div className="h-px bg-gray-200 w-full"></div>
+
+                   {/* Compositing Section */}
+                   <section>
+                     <h3 className="text-xs font-bold text-gray-900 uppercase tracking-wider mb-4">Compositing</h3>
+                     
+                     <div className="space-y-5">
+                       <div>
+                         <div className="flex justify-between text-xs font-semibold text-gray-600 mb-2">
+                           <span>Blend Mode</span>
+                         </div>
+                         <div className="relative">
+                           <select 
+                             value={blendMode}
+                             onChange={(e) => setBlendMode(e.target.value)}
+                             className="w-full appearance-none bg-gray-50 border border-gray-200 rounded-md px-3 py-2 text-xs font-medium text-gray-900 shadow-sm focus:outline-none focus:border-[#F5A623]"
+                           >
+                             <option value="normal">Normal</option>
+                             <option value="multiply">Multiply</option>
+                             <option value="screen">Screen</option>
+                             <option value="overlay">Overlay</option>
+                             <option value="difference">Difference</option>
+                           </select>
+                           <ChevronDown className="w-3 h-3 text-gray-500 absolute right-3 top-1/2 -translate-y-1/2 pointer-events-none" />
+                         </div>
+                       </div>
+
+                       <div>
+                         <div className="flex justify-between text-xs font-semibold text-gray-600 mb-2">
+                           <span>Opacity</span>
+                         </div>
+                         <div className="flex items-center gap-3">
+                           <input 
+                              type="range" min="0" max="100" 
+                              value={opacity} 
+                              onChange={(e) => setOpacity(Number(e.target.value))}
+                              className="flex-1 h-1.5 bg-gray-200 rounded-lg appearance-none accent-[#F5A623]" 
+                           />
+                           <span className="text-xs bg-gray-50 border border-gray-200 px-2 py-1.5 rounded-md text-gray-700 font-mono min-w-[3.5rem] text-center shadow-sm">{opacity}%</span>
+                         </div>
+                       </div>
                      </div>
-                   </div>
+                   </section>
+                 </>
+               )}
+
+               {['Audio', 'Effects', 'Adjust'].includes(activePropTab) && (
+                 <div className="flex flex-col items-center justify-center h-40 opacity-50">
+                    <SparklesIcon />
+                    <p className="text-xs text-gray-500 font-medium mt-2">{activePropTab} properties</p>
+                    <p className="text-[10px] text-gray-400">Coming soon</p>
                  </div>
-               </section>
+               )}
 
-               <div className="h-px bg-gray-200 w-full"></div>
-
-               {/* Compositing Section */}
-               <section>
-                 <h3 className="text-xs font-bold text-gray-900 uppercase tracking-wider mb-4">Compositing</h3>
-                 
-                 <div className="space-y-5">
-                   <div>
-                     <div className="flex justify-between text-xs font-semibold text-gray-600 mb-2">
-                       <span>Blend Mode</span>
-                     </div>
-                     <div className="relative">
-                       <select className="w-full appearance-none bg-gray-50 border border-gray-200 rounded-md px-3 py-2 text-xs font-medium text-gray-900 shadow-sm focus:outline-none focus:border-[#F5A623]">
-                         <option>Normal</option>
-                         <option>Multiply</option>
-                         <option>Screen</option>
-                         <option>Overlay</option>
-                       </select>
-                       <ChevronDown className="w-3 h-3 text-gray-500 absolute right-3 top-1/2 -translate-y-1/2 pointer-events-none" />
-                     </div>
-                   </div>
-
-                   <div>
-                     <div className="flex justify-between text-xs font-semibold text-gray-600 mb-2">
-                       <span>Opacity</span>
-                     </div>
-                     <div className="flex items-center gap-3">
-                       <input type="range" className="flex-1 h-1.5 bg-gray-200 rounded-lg appearance-none accent-[#F5A623]" defaultValue={100} />
-                       <span className="text-xs bg-gray-50 border border-gray-200 px-2 py-1.5 rounded-md text-gray-700 font-mono min-w-[3.5rem] text-center shadow-sm">100%</span>
-                     </div>
-                   </div>
-                 </div>
-               </section>
             </div>
           </aside>
         </div>
