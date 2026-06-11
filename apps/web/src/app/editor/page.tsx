@@ -22,10 +22,19 @@ export default function AdvancedNLEEditor() {
     if (videoRef.current) {
       if (isPlaying) {
         videoRef.current.pause();
+        setIsPlaying(false);
       } else {
-        videoRef.current.play();
+        const playPromise = videoRef.current.play();
+        if (playPromise !== undefined) {
+          playPromise.then(() => {
+            setIsPlaying(true);
+          }).catch(error => {
+            console.error("Video playback failed:", error);
+            setIsPlaying(false);
+            // Ignore the error to prevent crash
+          });
+        }
       }
-      setIsPlaying(!isPlaying);
     }
   };
 
@@ -179,8 +188,9 @@ export default function AdvancedNLEEditor() {
                   {/* REAL VIDEO PLAYER */}
                   <video 
                     ref={videoRef}
-                    className="w-full h-full object-cover"
-                    src="http://commondatastorage.googleapis.com/gtv-videos-bucket/sample/BigBuckBunny.mp4"
+                    className="w-full h-full object-cover bg-black"
+                    src="https://www.w3schools.com/html/mov_bbb.mp4"
+                    crossOrigin="anonymous"
                     onTimeUpdate={() => {
                       if (videoRef.current) {
                         setCurrentTime(videoRef.current.currentTime);
