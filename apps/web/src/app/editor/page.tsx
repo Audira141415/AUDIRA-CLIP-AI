@@ -16,6 +16,9 @@ export default function AdvancedNLEEditor() {
   const [currentTime, setCurrentTime] = useState(0);
   const [duration, setDuration] = useState(0);
   const videoRef = useRef<HTMLVideoElement>(null);
+  
+  // Library Tab State
+  const [activeLibraryTab, setActiveLibraryTab] = useState('Media');
 
   // Toggle Play/Pause
   const togglePlay = () => {
@@ -112,53 +115,106 @@ export default function AdvancedNLEEditor() {
           <aside className="w-[380px] bg-white border-r border-gray-200 flex flex-col shrink-0">
             {/* Tabs */}
             <div className="h-16 border-b border-gray-200 flex items-center px-4 gap-6 overflow-x-auto no-scrollbar">
-              <LibTab icon={<Video />} label="Media" active />
-              <LibTab icon={<PlaySquare />} label="Audio" />
-              <LibTab icon={<Type />} label="Text" />
-              <LibTab icon={<Monitor />} label="Elements" />
-              <LibTab icon={<SplitSquareHorizontal />} label="Transitions" />
-              <LibTab icon={<Filter />} label="Filters" />
-              <LibTab icon={<SparklesIcon />} label="Effects" />
+              <LibTab icon={<Video />} label="Media" active={activeLibraryTab === 'Media'} onClick={() => setActiveLibraryTab('Media')} />
+              <LibTab icon={<PlaySquare />} label="Audio" active={activeLibraryTab === 'Audio'} onClick={() => setActiveLibraryTab('Audio')} />
+              <LibTab icon={<Type />} label="Text" active={activeLibraryTab === 'Text'} onClick={() => setActiveLibraryTab('Text')} />
+              <LibTab icon={<Monitor />} label="Elements" active={activeLibraryTab === 'Elements'} onClick={() => setActiveLibraryTab('Elements')} />
+              <LibTab icon={<SplitSquareHorizontal />} label="Transitions" active={activeLibraryTab === 'Transitions'} onClick={() => setActiveLibraryTab('Transitions')} />
+              <LibTab icon={<Filter />} label="Filters" active={activeLibraryTab === 'Filters'} onClick={() => setActiveLibraryTab('Filters')} />
+              <LibTab icon={<SparklesIcon />} label="Effects" active={activeLibraryTab === 'Effects'} onClick={() => setActiveLibraryTab('Effects')} />
             </div>
 
             <div className="p-4 flex flex-col flex-1 overflow-hidden">
-              <div className="flex items-center gap-2 mb-4">
-                <button className="flex-1 h-10 bg-white border border-gray-300 hover:bg-gray-50 rounded-lg flex items-center justify-center gap-2 text-sm text-gray-700 font-medium transition-colors shadow-sm">
-                  <Upload className="w-4 h-4" /> Upload Media <ChevronDown className="w-4 h-4 text-gray-400" />
-                </button>
-                <button className="w-10 h-10 bg-white border border-gray-300 rounded-lg flex items-center justify-center text-gray-500 hover:text-gray-900 shadow-sm transition-colors">
-                  <Filter className="w-4 h-4" />
-                </button>
-              </div>
-
-              <div className="flex items-center justify-between mb-4">
-                <span className="text-xs font-bold text-gray-900">Project Media <span className="bg-gray-100 px-1.5 py-0.5 rounded ml-1 text-gray-500 font-semibold">24</span></span>
-                <div className="flex gap-2">
-                  <GridIcon />
-                  <ListIcon />
-                </div>
-              </div>
-
-              {/* Grid of Media */}
-              <div className="flex-1 overflow-y-auto pr-2 pb-4">
-                <div className="grid grid-cols-3 gap-3">
-                  <MediaItem title="Video_01.mp4" duration="00:18" img="https://images.unsplash.com/photo-1464822759023-fed622ff2c3b?w=200&q=80" />
-                  <MediaItem title="B-roll_02.mp4" duration="00:14" img="https://images.unsplash.com/photo-1542204165-65bf26472b9b?w=200&q=80" />
-                  <MediaItem title="Interview.mp4" duration="00:22" img="https://images.unsplash.com/photo-1573496359142-b8d87734a5a2?w=200&q=80" />
-                  <MediaItem title="City_Broll.mp4" duration="00:10" img="https://images.unsplash.com/photo-1514565131-fce0801e5785?w=200&q=80" />
-                  <MediaItem title="Screen_01.mp4" duration="00:12" img="https://images.unsplash.com/photo-1517694712202-14dd9538aa97?w=200&q=80" />
-                  <div className="aspect-video bg-purple-50 rounded-lg border border-purple-200 flex flex-col justify-between p-2 shadow-sm">
-                     <div className="flex justify-center mt-2">
-                        <MusicIcon />
-                     </div>
-                     <div className="flex justify-between items-center">
-                       <span className="text-[9px] text-gray-700 bg-white/80 backdrop-blur-sm px-1 rounded font-medium">02:45</span>
-                       <MoreVerticalIcon />
-                     </div>
+              {activeLibraryTab === 'Media' && (
+                <>
+                  <div className="flex items-center gap-2 mb-4">
+                    <button className="flex-1 h-10 bg-white border border-gray-300 hover:bg-gray-50 rounded-lg flex items-center justify-center gap-2 text-sm text-gray-700 font-medium transition-colors shadow-sm">
+                      <Upload className="w-4 h-4" /> Upload Media <ChevronDown className="w-4 h-4 text-gray-400" />
+                    </button>
+                    <button className="w-10 h-10 bg-white border border-gray-300 rounded-lg flex items-center justify-center text-gray-500 hover:text-gray-900 shadow-sm transition-colors">
+                      <Filter className="w-4 h-4" />
+                    </button>
                   </div>
-                  <div className="col-span-3 text-[10px] font-medium text-gray-500 mt-1">Music_Loop.mp3</div>
+
+                  <div className="flex items-center justify-between mb-4">
+                    <span className="text-xs font-bold text-gray-900">Project Media <span className="bg-gray-100 px-1.5 py-0.5 rounded ml-1 text-gray-500 font-semibold">24</span></span>
+                    <div className="flex gap-2">
+                      <GridIcon />
+                      <ListIcon />
+                    </div>
+                  </div>
+
+                  {/* Grid of Media */}
+                  <div className="flex-1 overflow-y-auto pr-2 pb-4">
+                    <div className="grid grid-cols-3 gap-3">
+                      <MediaItem title="Video_01.mp4" duration="00:18" img="https://images.unsplash.com/photo-1464822759023-fed622ff2c3b?w=200&q=80" />
+                      <MediaItem title="B-roll_02.mp4" duration="00:14" img="https://images.unsplash.com/photo-1542204165-65bf26472b9b?w=200&q=80" />
+                      <MediaItem title="Interview.mp4" duration="00:22" img="https://images.unsplash.com/photo-1573496359142-b8d87734a5a2?w=200&q=80" />
+                      <MediaItem title="City_Broll.mp4" duration="00:10" img="https://images.unsplash.com/photo-1514565131-fce0801e5785?w=200&q=80" />
+                      <MediaItem title="Screen_01.mp4" duration="00:12" img="https://images.unsplash.com/photo-1517694712202-14dd9538aa97?w=200&q=80" />
+                      <div className="aspect-video bg-purple-50 rounded-lg border border-purple-200 flex flex-col justify-between p-2 shadow-sm">
+                         <div className="flex justify-center mt-2">
+                            <MusicIcon />
+                         </div>
+                         <div className="flex justify-between items-center">
+                           <span className="text-[9px] text-gray-700 bg-white/80 backdrop-blur-sm px-1 rounded font-medium">02:45</span>
+                           <MoreVerticalIcon />
+                         </div>
+                      </div>
+                      <div className="col-span-3 text-[10px] font-medium text-gray-500 mt-1">Music_Loop.mp3</div>
+                    </div>
+                  </div>
+                </>
+              )}
+
+              {activeLibraryTab === 'Audio' && (
+                <div className="flex-1 flex flex-col">
+                  <input type="text" placeholder="Search audio..." className="w-full bg-white border border-gray-300 rounded-lg px-3 py-2 text-xs mb-4 focus:outline-none focus:border-[#F5A623]" />
+                  <div className="flex-1 overflow-y-auto space-y-2 pr-1">
+                    {['Cinematic Intro', 'Upbeat Vlog', 'Whoosh Transition', 'Piano Emotional'].map((title, i) => (
+                      <div key={i} className="flex items-center justify-between p-3 bg-white border border-gray-200 rounded-lg hover:border-[#F5A623] cursor-pointer shadow-sm group transition-colors">
+                        <div className="flex items-center gap-3">
+                           <div className="w-8 h-8 bg-purple-100 rounded-full flex items-center justify-center group-hover:bg-purple-200 transition-colors">
+                             <MusicIcon />
+                           </div>
+                           <div>
+                             <p className="text-xs font-bold text-gray-900">{title}</p>
+                             <p className="text-[10px] text-gray-500">00:{(i+1)*12}</p>
+                           </div>
+                        </div>
+                        <PlaySquare className="w-4 h-4 text-gray-400 group-hover:text-[#F5A623]" />
+                      </div>
+                    ))}
+                  </div>
                 </div>
-              </div>
+              )}
+
+              {activeLibraryTab === 'Text' && (
+                <div className="flex-1 flex flex-col">
+                  <div className="grid grid-cols-2 gap-3 flex-1 overflow-y-auto content-start">
+                    <div className="bg-white border border-gray-200 rounded-lg p-4 flex items-center justify-center cursor-pointer hover:border-[#F5A623] shadow-sm transition-colors">
+                       <span className="text-2xl font-black text-gray-900">Heading</span>
+                    </div>
+                    <div className="bg-white border border-gray-200 rounded-lg p-4 flex items-center justify-center cursor-pointer hover:border-[#F5A623] shadow-sm transition-colors">
+                       <span className="text-lg font-bold text-gray-700">Subtitle</span>
+                    </div>
+                    <div className="col-span-2 bg-gradient-to-r from-[#F5A623] to-orange-500 rounded-lg p-4 flex items-center justify-center cursor-pointer shadow-sm text-white font-bold italic hover:shadow-md transition-shadow">
+                       Dynamic AI Captions
+                    </div>
+                  </div>
+                </div>
+              )}
+
+              {['Elements', 'Transitions', 'Filters', 'Effects'].includes(activeLibraryTab) && (
+                <div className="flex-1 flex items-center justify-center">
+                  <div className="text-center flex flex-col items-center">
+                    <div className="w-10 h-10 bg-gray-100 rounded-full flex items-center justify-center mb-2">
+                      <SparklesIcon />
+                    </div>
+                    <p className="text-xs text-gray-500 font-medium">{activeLibraryTab} library coming soon</p>
+                  </div>
+                </div>
+              )}
             </div>
           </aside>
 
@@ -499,9 +555,9 @@ function NavItem({ icon, label, active = false, href = "#" }: { icon: React.Reac
   );
 }
 
-function LibTab({ icon, label, active = false }: { icon: React.ReactNode, label: string, active?: boolean }) {
+function LibTab({ icon, label, active = false, onClick }: { icon: React.ReactNode, label: string, active?: boolean, onClick?: () => void }) {
   return (
-    <button className={`flex flex-col items-center gap-1.5 shrink-0 transition-colors pt-3 ${active ? 'text-[#F5A623]' : 'text-gray-500 hover:text-gray-900'}`}>
+    <button onClick={onClick} className={`flex flex-col items-center gap-1.5 shrink-0 transition-colors pt-3 ${active ? 'text-[#F5A623]' : 'text-gray-500 hover:text-gray-900'}`}>
       <div className="[&>svg]:w-4 [&>svg]:h-4">{icon}</div>
       <span className="text-[10px] font-bold">{label}</span>
       <div className={`w-full h-0.5 mt-1.5 rounded-t-sm transition-colors ${active ? 'bg-[#F5A623]' : 'bg-transparent'}`} />
