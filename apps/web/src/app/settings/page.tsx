@@ -126,6 +126,16 @@ const ProfileTab = () => (
 
 const PreferencesTab = () => (
   <Card title="Editor Preferences" desc="Sesuaikan antarmuka Editor dan AI Copilot dengan gaya kerja Anda.">
+    {/* NEW SECTION: AI Engine Settings */}
+    <div className="mb-6 p-4 bg-[#FFF8EB] border border-[#F5A623]/30 rounded-xl">
+      <h4 className="text-sm font-bold text-gray-900 mb-1 flex items-center gap-2">
+        <svg className="w-4 h-4 text-[#F5A623]" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="m12 3-1.912 5.813a2 2 0 0 1-1.275 1.275L3 12l5.813 1.912a2 2 0 0 1 1.275 1.275L12 21l1.912-5.813a2 2 0 0 1 1.275-1.275L21 12l-5.813-1.912a2 2 0 0 1-1.275-1.275L12 3Z"/></svg>
+        AI Engine Provider (Local)
+      </h4>
+      <p className="text-xs text-gray-600 mb-4">Pilih model kecerdasan buatan lokal yang akan digunakan sebagai "Otak" untuk memotong video dan menulis teks.</p>
+      <SelectRow label="Active AI Model" options={["deepseek-r1:8b (Fastest)", "deepseek-r1:32b (Smart)", "qwen2.5:32b (Multilingual Pro)", "gemma2:27b (Creative)", "qwen2.5-coder:32b (Logic)"]} defaultValue="deepseek-r1:8b (Fastest)" />
+    </div>
+
     <SelectRow label="Default Subtitle Font" options={["Plus Jakarta Sans", "Roboto", "Inter", "Arial"]} />
     <SelectRow label="Subtitle Font Size" options={["Small", "Medium", "Large", "Extra Large"]} defaultValue="Medium" />
     <ToggleRow title="Auto-Generate Subtitles" desc="Selalu buat subtitle otomatis saat mengunggah video baru" isOn={true} />
