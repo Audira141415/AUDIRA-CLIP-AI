@@ -5,7 +5,7 @@ import { TranscriptSegment } from './transcription.service';
 export class OllamaService {
   private readonly logger = new Logger(OllamaService.name);
   private readonly OLLAMA_URL = 'http://127.0.0.1:11434/api/generate';
-  private readonly MODEL = 'deepseek-r1:8b';
+  private readonly MODEL = 'qwen2.5:32b';
 
   // Layer 1: AI Shield - Auto Retry with Exponential Backoff & Timeout
   private async fetchWithRetry(url: string, options: any, retries = 3, timeoutMs = 60000): Promise<any> {
