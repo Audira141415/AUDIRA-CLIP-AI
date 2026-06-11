@@ -1,0 +1,641 @@
+import { Injectable, Logger } from '@nestjs/common';
+import { TranscriptSegment } from './transcription.service';
+
+@Injectable()
+export class OllamaService {
+  private readonly logger = new Logger(OllamaService.name);
+  private readonly OLLAMA_URL = 'http://127.0.0.1:11434/api/generate';
+  private readonly MODEL = 'deepseek-r1:8b';
+
+  // Layer 1: AI Shield - Auto Retry with Exponential Backoff & Timeout
+  private async fetchWithRetry(url: string, options: any, retries = 3, timeoutMs = 60000): Promise<any> {
+    for (let i = 0; i < retries; i++) {
+      const controller = new AbortController();
+      const timeoutId = setTimeout(() => controller.abort(), timeoutMs);
+      
+      try {
+        const response = await fetch(url, { ...options, signal: controller.signal });
+        clearTimeout(timeoutId);
+        
+        if (!response.ok) {
+          throw new Error(`API status ${response.status}`);
+        }
+        return response;
+      } catch (error: any) {
+        clearTimeout(timeoutId);
+        const isLast = i === retries - 1;
+        if (isLast) throw error;
+        
+        this.logger.warn(`AI request failed (${error.message}). Retrying ${i + 1}/${retries} in ${2 * (i + 1)}s...`);
+        await new Promise(resolve => setTimeout(resolve, 2000 * (i + 1))); // 2s, 4s backoff
+      }
+    }
+  }
+
+  async generateClipTitles(topic: string, intent: string): Promise<string[]> {
+    this.logger.log(`Requesting titles from Ollama (Model: ${this.MODEL}) for topic: "${topic || 'General content'}", intent: "${intent || 'Viral Hook'}"`);
+
+    const prompt = `You are an expert AI Video Clipper and Viral Copywriter. 
+I am creating short clips for TikTok, IG Reels, and YT Shorts.
+The main topic of the video is: "${topic || 'General engaging content'}".
+The vibe/intent of the clips should be: "${intent || 'Viral Hook'}".
+
+Generate exactly 3 short, extremely catchy, clickbait titles for these clips. 
+Return ONLY a valid JSON array of 3 strings. Do not include any other text, markdown formatting, or explanations. 
+Example of expected output: ["Mind-blowing secret revealed!", "You won't believe this happened", "Wait for the end..."]`;
+
+    try {
+      const response = await this.fetchWithRetry(this.OLLAMA_URL, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({
+          model: this.MODEL,
+          prompt: prompt,
+          stream: false,
+          format: 'json' // Forces Ollama to output JSON
+        }),
+      });
+
+      if (!response.ok) {
+        throw new Error(`Ollama API responded with status ${response.status}`);
+      }
+
+      const data = await response.json();
+      let responseText = data.response;
+      
+      this.logger.debug(`Ollama Raw Response: ${responseText}`);
+
+      // Handle DeepSeek-R1 <think> tags by stripping them
+      if (responseText.includes('</think>')) {
+        responseText = responseText.split('</think>')[1].trim();
+      }
+
+      // Try to parse JSON array
+      const parsedArray = JSON.parse(responseText);
+      if (Array.isArray(parsedArray) && parsedArray.length >= 3) {
+        return [parsedArray[0], parsedArray[1], parsedArray[2]];
+      } else {
+        throw new Error("Parsed response is not an array of at least 3 strings");
+      }
+
+    } catch (error: any) {
+      this.logger.error(`Failed to generate titles from Ollama: ${error.message}`);
+      this.logger.warn(`Falling back to default titles.`);
+      
+      // Fallbacks based on intent
+      if (intent === 'Funny Moments') {
+        return ["Comedy Hook", "Funny Story", "Laugh Shorts"];
+      } else if (intent === 'Educational') {
+        return ["Did You Know?", "Quick Fact Story", "Edu Shorts"];
+      } else if (intent === 'Gaming Highlight') {
+        return ["Epic Play", "Gaming Story", "Clutch Shorts"];
+      }
+      return ["Viral TikTok Hook", "Engaging Story", "YouTube Shorts Teaser"];
+    }
+  }
+
+  private getFallbackClips(duration: number) {
+    const clips = [];
+    clips.push({ title: "Viral Start", reason: "Fallback logic", start: 0, end: Math.min(15, duration), score: 90 });
+    if (duration > 15) clips.push({ title: "Engaging Middle", reason: "Fallback logic", start: 15, end: Math.min(30, duration), score: 85 });
+    if (duration > 30) clips.push({ title: "Unexpected End", reason: "Fallback logic", start: 30, end: Math.min(45, duration), score: 80 });
+    return clips;
+  }
+
+  async mapVideoChapters(transcript: TranscriptSegment[], duration: number): Promise<any[]> {
+    this.logger.log(`[LAYER 0] The Architect (Semantic Video Mapping)...`);
+    
+    // STEP 1: MAP - Summarize 10-minute blocks
+    const CHUNK_DUR = 600; // 10 minutes
+    let summaries: string[] = [];
+    
+    let currentStart = 0;
+    let chunkIndex = 1;
+    while (currentStart < duration) {
+      const chunkEnd = currentStart + CHUNK_DUR;
+      const chunkSegments = transcript.filter(s => s.start >= currentStart && s.start < chunkEnd);
+      
+      if (chunkSegments.length > 0) {
+        let chunkText = chunkSegments.map(s => `[${Math.round(s.start)}s]: ${s.text}`).join('\n');
+        
+        // Prevent CPU Timeout / "fetch failed": Truncate text if it's too massive
+        if (chunkText.length > 3000) {
+          chunkText = chunkText.substring(0, 3000) + "\n...[TRUNCATED to save CPU memory]...";
+        }
+
+        const prompt = `Summarize the main topics discussed in this 10-minute video chunk. 
+Be extremely concise. Write 2-3 sentences max.
+Transcript Chunk:
+${chunkText}
+Summary:`;
+        
+        try {
+          this.logger.log(`Architect Mapping Phase 1: Summarizing Block ${chunkIndex} (${currentStart}s - ${chunkEnd}s)`);
+          const res = await this.fetchWithRetry(this.OLLAMA_URL, {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ model: this.MODEL, prompt, stream: false })
+          }, 3, 1200000); // 20 min timeout for slow local models
+          let summary = (await res.json()).response;
+          if (summary.includes('</think>')) summary = summary.split('</think>')[1].trim();
+          summaries.push(`Block ${chunkIndex} (${currentStart}s - ${chunkEnd}s): ${summary.trim()}`);
+        } catch (e: any) {
+          this.logger.warn(`Failed to summarize block ${chunkIndex}: ${e.message}`);
+        }
+      }
+      currentStart += CHUNK_DUR;
+      chunkIndex++;
+    }
+
+    if (summaries.length === 0) return [];
+
+    // STEP 2: REDUCE - Generate Chapter Mapping
+    this.logger.log(`Architect Mapping Phase 2: Generating Chapters from Summaries...`);
+    const allSummariesText = summaries.join('\n\n');
+    const finalPrompt = `You are a Video Architect. Analyze the following sequence of video block summaries and segment the entire video into logical chapters (e.g., Opening, Main Discussion, Climax, Conclusion, Closing).
+
+Summaries:
+${allSummariesText}
+
+CRITICAL: Output ONLY a valid JSON array of objects.
+Format:
+[
+  { "chapter": "Opening", "start": 0, "end": 60, "summary": "Short explanation" },
+  { "chapter": "Deep Dive", "start": 60, "end": 1200, "summary": "Short explanation" }
+]
+Do not include markdown or reasoning. Just the JSON array.`;
+
+    try {
+      const res = await this.fetchWithRetry(this.OLLAMA_URL, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ model: this.MODEL, prompt: finalPrompt, stream: false, format: 'json' })
+      }, 3, 1200000);
+      let finalResponse = (await res.json()).response;
+      if (finalResponse.includes('</think>')) finalResponse = finalResponse.split('</think>')[1].trim();
+      finalResponse = finalResponse.replace(/```json/g, '').replace(/```/g, '').trim();
+      
+      let chapters = JSON.parse(finalResponse);
+      
+      // DeepSeek sometimes wraps the array in an object like { "chapters": [...] }
+      if (chapters && typeof chapters === 'object' && !Array.isArray(chapters)) {
+        chapters = chapters.chapters || chapters.data || Object.values(chapters)[0];
+      }
+      
+      if (!Array.isArray(chapters)) {
+        throw new Error("Parsed chapters is not an array");
+      }
+
+      this.logger.log(`[LAYER 0] Architect mapping complete! Found ${chapters.length} chapters.`);
+      return chapters;
+    } catch (e: any) {
+      this.logger.error(`Architect Mapping Phase 2 failed: ${e.message}`);
+      return [];
+    }
+  }
+
+  async analyzeTranscriptForClips(transcript: TranscriptSegment[], intent: string, duration: number, chapters: any[] = []): Promise<any[]> {
+    this.logger.log(`[LAYER 1] The Observer & Hunter (Sliding Window Chunking)...`);
+    
+    const CHUNK_DURATION = 300; // 5 minutes
+    const OVERLAP = 30; // 30 seconds
+    const chunks: TranscriptSegment[][] = [];
+    
+    let currentStartTime = 0;
+    while (currentStartTime < duration) {
+      const chunkEndTime = currentStartTime + CHUNK_DURATION;
+      const chunkSegments = transcript.filter(s => s.start >= currentStartTime && s.start < chunkEndTime);
+      if (chunkSegments.length > 0) {
+        chunks.push(chunkSegments);
+      }
+      currentStartTime += (CHUNK_DURATION - OVERLAP);
+    }
+    
+    if (chunks.length === 0 && transcript.length > 0) {
+      chunks.push(transcript);
+    }
+
+    let baseClips: any[] = [];
+    
+    // Format chapters for the prompt
+    let chaptersContext = "No chapter mapping available.";
+    if (chapters && chapters.length > 0) {
+      chaptersContext = chapters.map(c => `- ${c.chapter} (${c.start}s - ${c.end}s): ${c.summary}`).join('\n');
+    }
+    
+    for (let i = 0; i < chunks.length; i++) {
+      const chunk = chunks[i];
+      const chunkText = chunk.map(s => `[${s.start}s - ${s.end}s]: ${s.text}`).join('\n');
+      
+      const chunkStart = chunk.length > 0 ? chunk[0].start : 0;
+      const exampleStart = Math.round((chunkStart + 12.5) * 10) / 10;
+      const exampleEnd = Math.round((chunkStart + 45.0) * 10) / 10;
+
+      const pass1Prompt = `You are a Viral Video Hunter. Read this 5-minute transcript chunk.
+Find exactly 2 to 3 highly engaging clips for TikTok.
+A "Hook" is the first 3-5 seconds. The clip duration must be 15 to 60 seconds.
+
+Video Architecture / Chapters context:
+${chaptersContext}
+
+Transcript Chunk:
+${chunkText}
+
+CRITICAL: 
+1. Output ONLY a JSON array. Do not write titles or reasons.
+2. The "start" and "end" values MUST be the exact numbers shown in the brackets [Xs - Ys] of the transcript. DO NOT copy the example numbers!
+Format:
+[
+  { "hook_text": "The exact spoken hook...", "start": ${exampleStart}, "end": ${exampleEnd} }
+]
+Do not include markdown formatting like \`\`\`json. Return ONLY the raw JSON array.`;
+
+      try {
+        this.logger.log(`Hunting clips in Chunk ${i+1}/${chunks.length} (Model: ${this.MODEL})...`);
+        const response1 = await this.fetchWithRetry(this.OLLAMA_URL, {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ model: this.MODEL, prompt: pass1Prompt, stream: false, format: 'json' }),
+        }, 3, 1200000); // 5 min timeout (CPU safe)
+        let text1 = (await response1.json()).response;
+        if (text1.includes('</think>')) text1 = text1.split('</think>')[1].trim();
+        text1 = text1.replace(/```json/g, '').replace(/```/g, '').trim();
+
+        let chunkClips: any[] = [];
+        try {
+          const jsonMatch = text1.match(/\[\s*\{.*\}\s*\]/s);
+          chunkClips = JSON.parse(jsonMatch ? jsonMatch[0] : text1);
+        } catch (e) {
+          this.logger.warn(`Failed to parse JSON for Chunk ${i+1}`);
+          continue;
+        }
+
+        if (chunkClips && typeof chunkClips === 'object' && !Array.isArray(chunkClips)) {
+          chunkClips = (chunkClips as any).clips || [chunkClips];
+        }
+        
+        if (Array.isArray(chunkClips)) {
+          // Add them to baseClips
+          baseClips = [...baseClips, ...chunkClips];
+        }
+      } catch (e: any) {
+        this.logger.error(`Layer 1 Hunter Failed for Chunk ${i+1}: ${e.message}`);
+      }
+    }
+
+    if (!baseClips || baseClips.length === 0) {
+      this.logger.warn(`No clips found in any chunk. Falling back to blind cutting logic.`);
+      return this.getFallbackClips(duration);
+    }
+
+    // ----------------------------------------------------
+    // LAYER 2: THE CRITIC (Parallel Node.js Merging)
+    // ----------------------------------------------------
+    this.logger.log(`[LAYER 2] The Critic (Grading ${baseClips.length} clips)...`);
+    const finalClips: any[] = [];
+
+    for (let i = 0; i < baseClips.length; i++) {
+      const clip = baseClips[i];
+      
+      // Sanitize start and end values
+      let startNum = parseFloat(clip.start);
+      let endNum = parseFloat(clip.end);
+      
+      if (isNaN(startNum) || isNaN(endNum) || startNum >= endNum) {
+        this.logger.warn(`Skipping invalid clip from AI: start=${clip.start}, end=${clip.end}`);
+        continue;
+      }
+      
+      clip.start = startNum;
+      clip.end = endNum;
+
+      // Extract specific text for this clip
+      const clipText = transcript
+        .filter(s => s.start >= clip.start && s.end <= clip.end)
+        .map(s => s.text)
+        .join(' ');
+
+      if (!clipText.trim()) {
+        finalClips.push({ ...clip, title: "VIRAL MOMENT", score: 80, reason: "Good visuals" });
+        continue;
+      }
+
+      const pass2Prompt = `You are a TikTok Copywriter. Read this short clip transcript:
+"${clipText}"
+Intent: ${intent || 'Viral'}
+
+Generate a viral clickbait title, a virality score (1-100), and a reason why it will go viral.
+Output EXACTLY this JSON format:
+{
+  "title": "ALL CAPS TITLE",
+  "score": 95,
+  "reason": "Why it goes viral..."
+}
+Do not include markdown. Return ONLY the raw JSON object.`;
+
+      try {
+        const response2 = await this.fetchWithRetry(this.OLLAMA_URL, {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ model: this.MODEL, prompt: pass2Prompt, stream: false, format: 'json' }),
+        }, 2, 120000);
+        let text2 = (await response2.json()).response;
+        if (text2.includes('</think>')) text2 = text2.split('</think>')[1].trim();
+        text2 = text2.replace(/```json/g, '').replace(/```/g, '').trim();
+
+        let criticData: any = {};
+        try {
+          const jsonMatch2 = text2.match(/\{\s*".*\}\s*/s);
+          criticData = JSON.parse(jsonMatch2 ? jsonMatch2[0] : text2);
+        } catch (e) {
+          criticData = { title: "CATCHY VIRAL TITLE", score: 85, reason: "Engaging content" };
+        }
+
+        finalClips.push({
+          start: clip.start,
+          end: clip.end,
+          hook_text: clip.hook_text || "Engaging hook...",
+          title: criticData.title || "VIRAL CLIP",
+          score: typeof criticData.score === 'number' ? criticData.score : 85,
+          reason: criticData.reason || "High engagement potential"
+        });
+        this.logger.log(`Graded Clip ${i+1}/${baseClips.length}: Score ${criticData.score || 85}`);
+      } catch (e: any) {
+        this.logger.warn(`Layer 2 Critic Failed for clip ${i+1}. Using default grades.`);
+        finalClips.push({ ...clip, title: "VIRAL MOMENT", score: 80, reason: "Fallback grade" });
+      }
+    }
+
+    if (finalClips.length === 0) {
+      return this.getFallbackClips(duration);
+    }
+
+    // ----------------------------------------------------
+    // LAYER 3: DE-DUPLICATION & VALIDATION
+    // ----------------------------------------------------
+    this.logger.log(`[LAYER 3] Validating and De-duplicating clips...`);
+    const uniqueClips: any[] = [];
+    for (const clip of finalClips) {
+      let isDuplicate = false;
+      for (const existing of uniqueClips) {
+        if (Math.abs(clip.start - existing.start) < 5) {
+          isDuplicate = true;
+          if ((clip.score || 0) > (existing.score || 0)) {
+            existing.score = clip.score;
+            existing.title = clip.title;
+            existing.reason = clip.reason;
+            existing.start = clip.start;
+            existing.end = clip.end;
+          }
+          break;
+        }
+      }
+      if (!isDuplicate) uniqueClips.push(clip);
+    }
+
+    // ----------------------------------------------------
+    // LAYER 4: TEMPORAL DISTRIBUTION CHECKPOINT
+    // ----------------------------------------------------
+    this.logger.log(`[LAYER 4] Temporal Distribution Checkpoint (Spreading clips evenly)...`);
+    
+    // Sort by score first to prioritize best clips
+    uniqueClips.sort((a, b) => (b.score || 0) - (a.score || 0));
+
+    const topClips: any[] = [];
+    
+    // If video is longer than 5 minutes, enforce chronological distribution
+    if (uniqueClips.length > 0 && duration > 300) {
+      const thirds = [
+        { min: 0, max: duration / 3, filled: 0, name: "Opening" },
+        { min: duration / 3, max: (duration / 3) * 2, filled: 0, name: "Middle" },
+        { min: (duration / 3) * 2, max: duration, filled: 0, name: "Ending" }
+      ];
+      
+      const MAX_PER_THIRD = 5; // Enforce max 5 clips per section
+
+      // Pass 1: Fill quotas for each third of the video
+      for (const clip of uniqueClips) {
+        const thirdIndex = thirds.findIndex(t => clip.start >= t.min && clip.start <= t.max);
+        if (thirdIndex !== -1 && thirds[thirdIndex].filled < MAX_PER_THIRD) {
+          topClips.push(clip);
+          thirds[thirdIndex].filled++;
+        }
+      }
+
+      // Pass 2: If we still need more clips to reach 15, fill with remaining highest scored
+      for (const clip of uniqueClips) {
+        if (topClips.length >= 15) break;
+        if (!topClips.some(c => c.start === clip.start)) {
+          topClips.push(clip);
+        }
+      }
+    } else {
+      // For short videos, just take top 15 highest scoring
+      for (let i = 0; i < Math.min(15, uniqueClips.length); i++) {
+        topClips.push(uniqueClips[i]);
+      }
+    }
+
+    // Final sorting: chronological order for better UX in dashboard
+    topClips.sort((a, b) => a.start - b.start);
+    
+    // ----------------------------------------------------
+    // LAYER 6: THE PACING ANALYZER (Retention Predictor)
+    // ----------------------------------------------------
+    this.logger.log(`[LAYER 6] The Pacing Analyzer (Calculating Words Per Minute)...`);
+    for (const clip of topClips) {
+      const clipSegments = transcript.filter(s => s.start >= clip.start && s.end <= clip.end);
+      const clipText = clipSegments.map(s => s.text).join(' ');
+      const wordCount = clipText.split(/\s+/).filter(w => w.length > 0).length;
+      
+      const clipDurationSeconds = clip.end - clip.start;
+      const wpm = clipDurationSeconds > 0 ? Math.round((wordCount / clipDurationSeconds) * 60) : 0;
+      clip.wpm = wpm;
+      
+      if (wpm > 160) {
+        clip.score = Math.min(100, (clip.score || 80) + 3);
+        clip.pacing = "Fast & Energetic";
+      } else if (wpm < 110 && wpm > 0) {
+        clip.score = Math.max(0, (clip.score || 80) - 5);
+        clip.pacing = "Slow & Dramatic";
+      } else {
+        clip.pacing = "Perfect Rhythm";
+      }
+    }
+
+    // ----------------------------------------------------
+    // LAYER 7: THE VIRAL METADATA SYNTHESIZER
+    // ----------------------------------------------------
+    this.logger.log(`[LAYER 7] The Viral Metadata Synthesizer (Auto-Caption & SEO Hashtags)...`);
+    for (const clip of topClips) {
+      const hashtags = ['#fyp', '#viral'];
+      if (intent === 'Educational') hashtags.push('#learning', '#edutok');
+      else if (intent === 'Funny Moments') hashtags.push('#comedy', '#funny');
+      else if (intent === 'Gaming Highlight') hashtags.push('#gaming', '#gamer');
+      else hashtags.push('#trending', '#foryou');
+      
+      if (clip.pacing === "Fast & Energetic") hashtags.push('#intense');
+      
+      clip.hashtags = [...new Set(hashtags)].slice(0, 5).join(' ');
+      
+      const ctas = [
+        "Tonton sampai akhir! 🤯",
+        "Gimana menurut kalian? Komen di bawah! 👇",
+        "Save video ini biar nggak lupa! 📌",
+        "Kalian setuju nggak? 🤔"
+      ];
+      const randomCta = ctas[Math.floor(Math.random() * ctas.length)];
+      
+      clip.socialCaption = `🔥 ${clip.title}\n\n${clip.reason || ''}\n\n${randomCta}\n\n${clip.hashtags}`;
+    }
+    
+    // ----------------------------------------------------
+    // LAYER 8: THE VISUAL DIRECTOR (B-Roll Keyword)
+    // ----------------------------------------------------
+    this.logger.log(`[LAYER 8] The Visual Director (Extracting B-Roll Pexels Keywords)...`);
+    for (const clip of topClips) {
+      const text = clip.hook_text + " " + (clip.title || "");
+      const t = text.toLowerCase();
+      
+      if (t.match(/uang|money|bisnis|kaya|investasi|crypto|saham|milyar/)) clip.brollKeyword = "money business";
+      else if (t.match(/sedih|hancur|menangis|depresi|sakit/)) clip.brollKeyword = "sad alone";
+      else if (t.match(/mobil|motor|balapan|cepat|kendaraan/)) clip.brollKeyword = "sports car";
+      else if (t.match(/teknologi|ai|komputer|robot|masa depan/)) clip.brollKeyword = "futuristic technology";
+      else if (t.match(/cinta|pasangan|nikah|jodoh/)) clip.brollKeyword = "couple romance";
+      else if (t.match(/makanan|masak|lezat|lapar|diet/)) clip.brollKeyword = "delicious food";
+      else if (t.match(/sehat|olahraga|gym|lari/)) clip.brollKeyword = "fitness workout";
+      else if (t.match(/alam|gunung|pantai|liburan|travel/)) clip.brollKeyword = "nature landscape";
+      else clip.brollKeyword = "abstract background";
+    }
+
+    // ----------------------------------------------------
+    // LAYER 9: THE EMOTIONAL ARC DETECTOR (Vibe Tagging)
+    // ----------------------------------------------------
+    this.logger.log(`[LAYER 9] The Emotional Arc Detector (Vibe Tagging)...`);
+    for (const clip of topClips) {
+      const text = clip.hook_text + " " + (clip.title || "");
+      const t = text.toLowerCase();
+      
+      if (t.match(/gila|wow|mind-blowing|rahasia|terbongkar|mustahil/)) clip.vibe = "🤯 Mind-Blowing";
+      else if (t.match(/jangan|salah|bodoh|marah|parah|hancur/)) clip.vibe = "😡 Controversial";
+      else if (t.match(/lucu|ngakak|kocak|humor|ketawa/)) clip.vibe = "😂 Hilarious";
+      else if (t.match(/sedih|tangis|haru|menyesal|maaf/)) clip.vibe = "🥺 Emotional";
+      else clip.vibe = "💡 Genius";
+    }
+
+    // ----------------------------------------------------
+    // LAYER 10: THE ENGAGEMENT GRAPH (Hook & Retention)
+    // ----------------------------------------------------
+    this.logger.log(`[LAYER 10] The Engagement Graph (Calculating Hook Strength & Retention Risk)...`);
+    for (const clip of topClips) {
+      // Analyze Hook Strength based on first 5-10 words
+      const hookWords = clip.hook_text ? clip.hook_text.toLowerCase().split(' ').slice(0, 8) : [];
+      const hasStrongVerbs = hookWords.some((w: string) => w.match(/kenapa|bagaimana|cara|jangan|stop|alasan|rahasia|wow|gila|ternyata/));
+      clip.hookStrength = hasStrongVerbs ? "🔥 Sangat Kuat" : "⚡ Standar";
+
+      // Analyze Retention Risk based on duration and pacing
+      const dur = clip.end - clip.start;
+      if (dur < 20) clip.retentionRisk = "Beresiko (Terlalu Pendek)";
+      else if (dur > 50 && clip.wpm < 130) clip.retentionRisk = "Tinggi (Panjang & Lambat)";
+      else clip.retentionRisk = "Sangat Rendah (Aman)";
+    }
+
+    // ----------------------------------------------------
+    // LAYER 11: THE AUDIENCE PROFILER (Target Demographic)
+    // ----------------------------------------------------
+    this.logger.log(`[LAYER 11] The Audience Profiler (Predicting Target Demographic)...`);
+    for (const clip of topClips) {
+      const text = clip.hook_text + " " + (clip.title || "");
+      const t = text.toLowerCase();
+      
+      if (t.match(/investasi|saham|bisnis|uang|ceo|kaya|omset|startup/)) clip.targetDemographic = "Pengusaha / Investor";
+      else if (t.match(/game|pc|main|teknologi|ai|hp|gadget/)) clip.targetDemographic = "Gamer / Tech Enthusiast";
+      else if (t.match(/pacar|cinta|jodoh|nikah|galau/)) clip.targetDemographic = "Gen-Z / Remaja";
+      else if (t.match(/kesehatan|diet|gym|olahraga|sehat/)) clip.targetDemographic = "Fitness / Health";
+      else clip.targetDemographic = "General Audience";
+    }
+
+    // ----------------------------------------------------
+    // LAYER 12: THE AUDIO DIRECTOR (BGM & SFX Suggester)
+    // ----------------------------------------------------
+    this.logger.log(`[LAYER 12] The Audio Director (Profiling Background Music)...`);
+    for (const clip of topClips) {
+      if (clip.vibe === "🤯 Mind-Blowing") clip.bgmSuggestion = "Intense Suspense / Cinematic";
+      else if (clip.vibe === "😂 Hilarious") clip.bgmSuggestion = "Quirky / Silent Comedy BGM";
+      else if (clip.vibe === "🥺 Emotional") clip.bgmSuggestion = "Slow Cinematic Piano";
+      else if (clip.pacing === "Fast & Energetic") clip.bgmSuggestion = "Phonk / Aggressive Trap";
+      else clip.bgmSuggestion = "Lo-Fi / Chill Beats";
+    }
+
+    // ----------------------------------------------------
+    // LAYER 13: THE A/B TESTER (Alternative Hook Generator)
+    // ----------------------------------------------------
+    this.logger.log(`[LAYER 13] The A/B Tester (Generating Alternative Title)...`);
+    for (const clip of topClips) {
+      // Generate an opposite-style title. If original is long, make it super short.
+      const origTitle = clip.title || "VIRAL CLIP";
+      if (origTitle.length > 20) {
+        clip.alternativeTitle = origTitle.split(' ').slice(0, 3).join(' ') + " 🤯";
+      } else {
+        clip.alternativeTitle = "THE TRUTH ABOUT THIS " + (clip.vibe?.split(' ')[1] || "MOMENT").toUpperCase();
+      }
+    }
+
+    // ----------------------------------------------------
+    // LAYER 14: THE COMPLIANCE OFFICER (Brand Safety)
+    // ----------------------------------------------------
+    this.logger.log(`[LAYER 14] The Compliance Officer (Scanning for Brand Safety)...`);
+    for (const clip of topClips) {
+      const text = clip.hook_text + " " + (clip.title || "");
+      const t = text.toLowerCase();
+      
+      const unsafeWords = /bodoh|bangsat|anjing|tolol|mati|bunuh|sex|porno|judi|slot|gila/g;
+      if (t.match(unsafeWords)) {
+        clip.brandSafety = "⚠️ Risiko (Sensitif/Kasar)";
+      } else {
+        clip.brandSafety = "✅ Brand Safe";
+      }
+    }
+
+    // ----------------------------------------------------
+    // LAYER 15: THE CTA STRATEGIST (On-Screen Call-To-Action)
+    // ----------------------------------------------------
+    this.logger.log(`[LAYER 15] The CTA Strategist (Optimizing Call-To-Action Overlay)...`);
+    for (const clip of topClips) {
+      if (clip.vibe === "🤯 Mind-Blowing") clip.ctaOverlay = "Share Rahasia Ini! ↗️";
+      else if (clip.targetDemographic === "Pengusaha / Investor") clip.ctaOverlay = "Save untuk Nanti 📌";
+      else if (clip.vibe === "😂 Hilarious") clip.ctaOverlay = "Tag Teman Kamu! 😂";
+      else if (clip.hookStrength === "🔥 Sangat Kuat") clip.ctaOverlay = "Link in Bio 🔗";
+      else clip.ctaOverlay = "Follow for Part 2 ➕";
+    }
+
+    // ----------------------------------------------------
+    // LAYER 5: THE EDITOR (Sentence Boundary Alignment)
+    // ----------------------------------------------------
+    this.logger.log(`[LAYER 5] The Editor (Aligning cuts to exact sentence boundaries)...`);
+    for (const clip of topClips) {
+      // Find the closest transcript segment to the start time (within a 3s window)
+      const startSegment = transcript.find(s => s.start >= clip.start - 3 && s.start <= clip.start + 3);
+      if (startSegment) {
+        clip.start = Math.max(0, startSegment.start - 0.2); // Add 0.2s breathing room at start
+      }
+
+      // Find the closest transcript segment to the end time
+      const endSegments = transcript.filter(s => s.end >= clip.end - 3 && s.end <= clip.end + 3);
+      if (endSegments.length > 0) {
+        const lastSegment = endSegments[endSegments.length - 1];
+        clip.end = Math.min(duration, lastSegment.end + 0.5); // Add 0.5s breathing room at end
+      }
+      
+      // Safety check: ensure minimum 12s duration for shorts
+      if (clip.end - clip.start < 12) {
+        clip.end = Math.min(clip.start + 15, duration);
+      }
+    }
+
+    this.logger.log(`Successfully passed Layer 5: Generated ${topClips.length} perfectly aligned clips!`);
+    return topClips;
+  }
+}

@@ -1,0 +1,60 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: audira-api-gateway
+  labels:
+    app: audira-api-gateway
+spec:
+  replicas: 3
+  selector:
+    matchLabels:
+      app: audira-api-gateway
+  template:
+    metadata:
+      labels:
+        app: audira-api-gateway
+    spec:
+      containers:
+      - name: api-gateway
+        image: registry.gitlab.com/audira/api-gateway:latest
+        ports:
+        - containerPort: 3000
+        envFrom:
+        - secretRef:
+            name: audira-secrets
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: api-gateway-service
+spec:
+  selector:
+    app: audira-api-gateway
+  ports:
+    - protocol: TCP
+      port: 80
+      targetPort: 3000
+  type: LoadBalancer
+---
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: audira-ai-service
+  labels:
+    app: audira-ai-service
+spec:
+  replicas: 2
+  selector:
+    matchLabels:
+      app: audira-ai-service
+  template:
+    metadata:
+      labels:
+        app: audira-ai-service
+    spec:
+      containers:
+      - name: ai-service
+        image: registry.gitlab.com/audira/ai-service:latest
+        envFrom:
+        - secretRef:
+            name: audira-secrets

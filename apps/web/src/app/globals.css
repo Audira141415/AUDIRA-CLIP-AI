@@ -1,0 +1,45 @@
+@import "tailwindcss";
+
+@theme inline {
+  --color-background: #F4F4F0; /* Soft off-white */
+  --color-surface: #FFFFFF;
+  --color-card: #FFFFFF;
+  
+  /* Strict Neo-Brutalism Palette */
+  --color-primary: #FFC900; /* Bright Yellow */
+  --color-secondary: #FF90E8; /* Pink Accent */
+  --color-accent-blue: #90A8ED; /* Light Blue Accent */
+  --color-accent-teal: #23A094; /* Teal Accent */
+  --color-accent-red: #FF5757; /* Bright Red */
+  
+  --color-success: #23A094;
+  --color-warning: #FFC900;
+  --color-danger: #FF5757;
+
+  --font-sans: var(--font-inter), ui-sans-serif, system-ui, sans-serif;
+  --font-heading: var(--font-inter-tight), ui-sans-serif, system-ui, sans-serif;
+
+  --radius-sm: 0px; 
+  --radius-md: 0px;
+  --radius-lg: 0px;
+}
+
+/* Custom Neo-Brutalism Utilities */
+@layer utilities {
+  .shadow-neu {
+    box-shadow: 4px 4px 0px 0px rgba(0, 0, 0, 1);
+  }
+  .shadow-neu-hover {
+    box-shadow: 2px 2px 0px 0px rgba(0, 0, 0, 1);
+  }
+  .shadow-neu-active {
+    box-shadow: 0px 0px 0px 0px rgba(0, 0, 0, 1);
+  }
+}
+
+body {
+  background-color: var(--color-background);
+  color: #000000; /* Pure black text */
+  font-family: var(--font-sans);
+  -webkit-font-smoothing: antialiased;
+}

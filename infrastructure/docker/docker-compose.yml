@@ -1,0 +1,43 @@
+version: '3.8'
+
+services:
+  postgres:
+    image: postgres:15-alpine
+    container_name: clip-postgres
+    environment:
+      POSTGRES_USER: root
+      POSTGRES_PASSWORD: password
+      POSTGRES_DB: audira
+    ports:
+      - "5455:5432"
+    volumes:
+      - clip-postgres-data:/var/lib/postgresql/data
+    restart: unless-stopped
+
+  redis:
+    image: redis:7-alpine
+    container_name: clip-redis
+    ports:
+      - "6380:6379"
+    volumes:
+      - clip-redis-data:/data
+    restart: unless-stopped
+
+  minio:
+    image: minio/minio
+    container_name: clip-minio
+    ports:
+      - "9000:9000"
+      - "9001:9001"
+    environment:
+      MINIO_ROOT_USER: root
+      MINIO_ROOT_PASSWORD: password123
+    command: server /data --console-address ":9001"
+    volumes:
+      - clip-minio-data:/data
+    restart: unless-stopped
+
+volumes:
+  clip-postgres-data:
+  clip-redis-data:
+  clip-minio-data:

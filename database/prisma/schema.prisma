@@ -1,0 +1,212 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+model User {
+  id        String   @id @default(uuid())
+  email     String   @unique
+  name      String?
+  avatarUrl String?
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  workspaces WorkspaceMember[]
+  videos     Video[]
+  projects   Project[]
+}
+
+model Workspace {
+  id        String   @id @default(uuid())
+  name      String
+  ownerId   String
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  members       WorkspaceMember[]
+  videos        Video[]
+  projects      Project[]
+  subscriptions Subscription[]
+}
+
+model WorkspaceMember {
+  id          String   @id @default(uuid())
+  userId      String
+  workspaceId String
+  role        Role     @default(MEMBER)
+  createdAt   DateTime @default(now())
+
+  user      User      @relation(fields: [userId], references: [id], onDelete: Cascade)
+  workspace Workspace @relation(fields: [workspaceId], references: [id], onDelete: Cascade)
+
+  @@unique([userId, workspaceId])
+}
+
+enum Role {
+  OWNER
+  ADMIN
+  MEMBER
+}
+
+model Video {
+  id       String      @id @default(uuid())
+  title    String
+  url      String
+  duration Float
+  status   VideoStatus @default(PENDING)
+  progress Int         @default(0)
+  statusMessage String?
+
+  userId      String
+  workspaceId String
+  tags        String[] @default([])
+  folder      String?  @default("Uncategorized")
+  isFavorite  Boolean  @default(false)
+  isDeleted   Boolean  @default(false)
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  user      User      @relation(fields: [userId], references: [id], onDelete: Cascade)
+  workspace Workspace @relation(fields: [workspaceId], references: [id], onDelete: Cascade)
+  clips     Clip[]
+  subtitles Subtitle[]
+}
+
+enum VideoStatus {
+  PENDING
+  PROCESSING
+  READY
+  FAILED
+}
+
+model Clip {
+  id       String @id @default(uuid())
+  videoId  String
+  title        String
+  url          String
+  thumbnailUrl String?
+  duration     Float
+  startTime    Float    @default(0)
+  score        Float?   // AI Viral Score
+  reason       String?  // AI Viral Reason
+  socialCaption String? // Auto-generated caption
+  hashtags     String?  // Auto-generated hashtags
+  wpm          Int?     // Words Per Minute pacing
+  pacing       String?  // Pacing category
+  brollKeyword String?  // Layer 8: B-Roll suggestion
+  vibe         String?  // Layer 9: Emotional Arc
+  hookStrength      String?  // Layer 10: Hook Quality
+  retentionRisk     String?  // Layer 10: Retention
+  targetDemographic String?  // Layer 11: Audience
+  bgmSuggestion     String?  // Layer 12: Audio Director
+  alternativeTitle  String?  // Layer 13: A/B Tester
+  brandSafety       String?  // Layer 14: Compliance
+  ctaOverlay        String?  // Layer 15: CTA Strategist
+  aspectRatio  String   @default("16:9")
+  platform     String   @default("YouTube")
+  folder       String?  @default("Uncategorized")
+  isFavorite   Boolean  @default(false)
+  isDeleted    Boolean  @default(false)
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  video      Video         @relation(fields: [videoId], references: [id], onDelete: Cascade)
+  projects   ProjectClip[]
+  renderJobs RenderJob[]
+  subtitles  Subtitle[]
+}
+
+model Project {
+  id          String        @id @default(uuid())
+  name        String
+  userId      String
+  workspaceId String
+  status      ProjectStatus @default(DRAFT)
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  user      User          @relation(fields: [userId], references: [id], onDelete: Cascade)
+  workspace Workspace     @relation(fields: [workspaceId], references: [id], onDelete: Cascade)
+  clips     ProjectClip[]
+}
+
+model ProjectClip {
+  id        String @id @default(uuid())
+  projectId String
+  clipId    String
+  order     Int    @default(0)
+
+  project Project @relation(fields: [projectId], references: [id], onDelete: Cascade)
+  clip    Clip    @relation(fields: [clipId], references: [id], onDelete: Cascade)
+
+  @@unique([projectId, clipId])
+}
+
+enum ProjectStatus {
+  DRAFT
+  IN_PROGRESS
+  EXPORTED
+}
+
+// === NEWLY ADDED MODELS === //
+
+model Subtitle {
+  id          String   @id @default(uuid())
+  videoId     String?
+  clipId      String?
+  language    String   @default("id") // id, en, ja, zh, ar
+  content     Json     // The actual VTT/SRT or structured JSON data
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+
+  video       Video?   @relation(fields: [videoId], references: [id], onDelete: Cascade)
+  clip        Clip?    @relation(fields: [clipId], references: [id], onDelete: Cascade)
+}
+
+enum RenderStatus {
+  QUEUED
+  PROCESSING
+  COMPLETED
+  FAILED
+}
+
+model RenderJob {
+  id          String       @id @default(uuid())
+  clipId      String
+  status      RenderStatus @default(QUEUED)
+  progress    Int          @default(0) // 0-100
+  outputUrl   String?
+  errorMessage String?
+  createdAt   DateTime     @default(now())
+  updatedAt   DateTime     @updatedAt
+
+  clip        Clip         @relation(fields: [clipId], references: [id], onDelete: Cascade)
+}
+
+enum Plan {
+  STARTER
+  PRO
+  BUSINESS
+  ENTERPRISE
+}
+
+model Subscription {
+  id               String   @id @default(uuid())
+  workspaceId      String
+  plan             Plan     @default(STARTER)
+  stripeCustomerId String?
+  stripeSubId      String?
+  status           String   @default("active") // active, past_due, canceled
+  currentPeriodEnd DateTime?
+  createdAt        DateTime @default(now())
+  updatedAt        DateTime @updatedAt
+
+  workspace        Workspace @relation(fields: [workspaceId], references: [id], onDelete: Cascade)
+}
