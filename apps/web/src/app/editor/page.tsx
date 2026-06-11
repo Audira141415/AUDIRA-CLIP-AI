@@ -190,7 +190,6 @@ export default function AdvancedNLEEditor() {
                     ref={videoRef}
                     className="w-full h-full object-cover bg-black"
                     src="https://www.w3schools.com/html/mov_bbb.mp4"
-                    crossOrigin="anonymous"
                     onTimeUpdate={() => {
                       if (videoRef.current) {
                         setCurrentTime(videoRef.current.currentTime);
