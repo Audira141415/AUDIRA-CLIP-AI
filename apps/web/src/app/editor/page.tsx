@@ -1,7 +1,7 @@
 'use client';
 
 import { 
-  Home, FolderVideo, Clapperboard, Type, Crop, PlaySquare, 
+  Home, Video, Clapperboard, Type, Crop, PlaySquare, 
   BarChart2, Users, Settings as SettingsIcon, HelpCircle, Bell, 
   Download, Upload, Filter, Plus, ChevronDown, Monitor, 
   RotateCw, Play, SkipBack, SkipForward, Maximize2, 
@@ -26,16 +26,16 @@ export default function AdvancedNLEEditor() {
         </div>
 
         <nav className="flex-1 py-4 space-y-1">
-          <NavItem icon={<Home />} label="DASHBOARD" />
-          <NavItem icon={<FolderVideo />} label="VIDEO LIBRARY" />
-          <NavItem icon={<Clapperboard />} label="EDITOR" active />
+          <NavItem icon={<Home />} label="DASHBOARD" href="/" />
+          <NavItem icon={<Video />} label="VIDEO LIBRARY" />
+          <NavItem icon={<Clapperboard />} label="EDITOR" active href="/editor" />
           <NavItem icon={<Type />} label="SUBTITLE STUDIO" />
           <NavItem icon={<Crop />} label="AI REFRAMING" />
           <NavItem icon={<PlaySquare />} label="RENDER QUEUE" />
           <NavItem icon={<BarChart2 />} label="ANALYTICS" />
           <NavItem icon={<Users />} label="TEAM" />
           <NavItem icon={<SettingsIcon />} label="AI COPILOT" />
-          <NavItem icon={<SettingsIcon />} label="SETTINGS" />
+          <NavItem icon={<SettingsIcon />} label="SETTINGS" href="/settings" />
         </nav>
         
         <div className="p-4">
@@ -76,7 +76,7 @@ export default function AdvancedNLEEditor() {
           <aside className="w-[380px] bg-[#111111] border-r border-[#222] flex flex-col shrink-0">
             {/* Tabs */}
             <div className="h-16 border-b border-[#222] flex items-center px-4 gap-6 overflow-x-auto no-scrollbar">
-              <LibTab icon={<FolderVideo />} label="Media" active />
+              <LibTab icon={<Video />} label="Media" active />
               <LibTab icon={<PlaySquare />} label="Audio" />
               <LibTab icon={<Type />} label="Text" />
               <LibTab icon={<Monitor />} label="Elements" />
@@ -442,12 +442,12 @@ export default function AdvancedNLEEditor() {
 }
 
 // Helper Components
-function NavItem({ icon, label, active = false }: { icon: React.ReactNode, label: string, active?: boolean }) {
+function NavItem({ icon, label, active = false, href = "#" }: { icon: React.ReactNode, label: string, active?: boolean, href?: string }) {
   return (
-    <div className={`flex items-center gap-3 px-6 py-2.5 cursor-pointer border-l-4 transition-colors ${active ? 'border-[#F5A623] bg-white/5 text-[#F5A623]' : 'border-transparent text-gray-400 hover:text-white hover:bg-white/5'}`}>
+    <Link href={href} className={`flex items-center gap-3 px-6 py-2.5 cursor-pointer border-l-4 transition-colors ${active ? 'border-[#F5A623] bg-white/5 text-[#F5A623]' : 'border-transparent text-gray-400 hover:text-white hover:bg-white/5'}`}>
       <div className="[&>svg]:w-4 [&>svg]:h-4">{icon}</div>
       <span className="text-xs font-bold tracking-wide">{label}</span>
-    </div>
+    </Link>
   );
 }
 
