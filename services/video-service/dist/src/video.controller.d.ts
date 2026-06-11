@@ -11,23 +11,23 @@ export declare class VideoController {
         teamMembers: number;
     }>;
     getLibrary(userId: string, workspaceId: string, tab?: string, sortBy?: string, folder?: string): Promise<{
+        id: string;
         userId: string;
         workspaceId: string;
-        id: string;
         status: import("@prisma/client").$Enums.ProjectStatus;
         createdAt: Date;
         updatedAt: Date;
         name: string;
     }[] | ({
         video: {
+            progress: number;
+            id: string;
             userId: string;
             workspaceId: string;
-            id: string;
             title: string;
             url: string;
             duration: number;
             status: import("@prisma/client").$Enums.VideoStatus;
-            progress: number;
             statusMessage: string | null;
             tags: string[];
             folder: string | null;
@@ -71,14 +71,14 @@ export declare class VideoController {
             clips: number;
         };
     } & {
+        progress: number;
+        id: string;
         userId: string;
         workspaceId: string;
-        id: string;
         title: string;
         url: string;
         duration: number;
         status: import("@prisma/client").$Enums.VideoStatus;
-        progress: number;
         statusMessage: string | null;
         tags: string[];
         folder: string | null;
@@ -92,14 +92,14 @@ export declare class VideoController {
                 clips: number;
             };
         } & {
+            progress: number;
+            id: string;
             userId: string;
             workspaceId: string;
-            id: string;
             title: string;
             url: string;
             duration: number;
             status: import("@prisma/client").$Enums.VideoStatus;
-            progress: number;
             statusMessage: string | null;
             tags: string[];
             folder: string | null;
@@ -110,14 +110,14 @@ export declare class VideoController {
         })[];
         clips: ({
             video: {
+                progress: number;
+                id: string;
                 userId: string;
                 workspaceId: string;
-                id: string;
                 title: string;
                 url: string;
                 duration: number;
                 status: import("@prisma/client").$Enums.VideoStatus;
-                progress: number;
                 statusMessage: string | null;
                 tags: string[];
                 folder: string | null;
@@ -189,14 +189,14 @@ export declare class VideoController {
         aspectRatio: string;
         platform: string;
     } | {
+        progress: number;
+        id: string;
         userId: string;
         workspaceId: string;
-        id: string;
         title: string;
         url: string;
         duration: number;
         status: import("@prisma/client").$Enums.VideoStatus;
-        progress: number;
         statusMessage: string | null;
         tags: string[];
         folder: string | null;
@@ -236,14 +236,14 @@ export declare class VideoController {
         aspectRatio: string;
         platform: string;
     } | {
+        progress: number;
+        id: string;
         userId: string;
         workspaceId: string;
-        id: string;
         title: string;
         url: string;
         duration: number;
         status: import("@prisma/client").$Enums.VideoStatus;
-        progress: number;
         statusMessage: string | null;
         tags: string[];
         folder: string | null;
@@ -283,14 +283,14 @@ export declare class VideoController {
         aspectRatio: string;
         platform: string;
     } | {
+        progress: number;
+        id: string;
         userId: string;
         workspaceId: string;
-        id: string;
         title: string;
         url: string;
         duration: number;
         status: import("@prisma/client").$Enums.VideoStatus;
-        progress: number;
         statusMessage: string | null;
         tags: string[];
         folder: string | null;
@@ -330,14 +330,14 @@ export declare class VideoController {
         aspectRatio: string;
         platform: string;
     } | {
+        progress: number;
+        id: string;
         userId: string;
         workspaceId: string;
-        id: string;
         title: string;
         url: string;
         duration: number;
         status: import("@prisma/client").$Enums.VideoStatus;
-        progress: number;
         statusMessage: string | null;
         tags: string[];
         folder: string | null;
@@ -350,14 +350,14 @@ export declare class VideoController {
         success: boolean;
         message: string;
         video: {
+            progress: number;
+            id: string;
             userId: string;
             workspaceId: string;
-            id: string;
             title: string;
             url: string;
             duration: number;
             status: import("@prisma/client").$Enums.VideoStatus;
-            progress: number;
             statusMessage: string | null;
             tags: string[];
             folder: string | null;
@@ -375,14 +375,14 @@ export declare class VideoController {
         success: boolean;
         message: string;
         video: {
+            progress: number;
+            id: string;
             userId: string;
             workspaceId: string;
-            id: string;
             title: string;
             url: string;
             duration: number;
             status: import("@prisma/client").$Enums.VideoStatus;
-            progress: number;
             statusMessage: string | null;
             tags: string[];
             folder: string | null;
@@ -466,14 +466,14 @@ export declare class VideoController {
             platform: string;
         }[];
     } & {
+        progress: number;
+        id: string;
         userId: string;
         workspaceId: string;
-        id: string;
         title: string;
         url: string;
         duration: number;
         status: import("@prisma/client").$Enums.VideoStatus;
-        progress: number;
         statusMessage: string | null;
         tags: string[];
         folder: string | null;

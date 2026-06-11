@@ -19,14 +19,14 @@ export declare class VideoService {
     }>;
     getLibrary(userId: string, workspaceId: string, query?: any): Promise<({
         video: {
+            progress: number;
+            id: string;
             userId: string;
             workspaceId: string;
-            id: string;
             title: string;
             url: string;
             duration: number;
             status: import("@audira/database").$Enums.VideoStatus;
-            progress: number;
             statusMessage: string | null;
             tags: string[];
             folder: string | null;
@@ -66,9 +66,9 @@ export declare class VideoService {
         aspectRatio: string;
         platform: string;
     })[] | {
+        id: string;
         userId: string;
         workspaceId: string;
-        id: string;
         status: import("@audira/database").$Enums.ProjectStatus;
         createdAt: Date;
         updatedAt: Date;
@@ -78,14 +78,14 @@ export declare class VideoService {
             clips: number;
         };
     } & {
+        progress: number;
+        id: string;
         userId: string;
         workspaceId: string;
-        id: string;
         title: string;
         url: string;
         duration: number;
         status: import("@audira/database").$Enums.VideoStatus;
-        progress: number;
         statusMessage: string | null;
         tags: string[];
         folder: string | null;
@@ -99,14 +99,14 @@ export declare class VideoService {
                 clips: number;
             };
         } & {
+            progress: number;
+            id: string;
             userId: string;
             workspaceId: string;
-            id: string;
             title: string;
             url: string;
             duration: number;
             status: import("@audira/database").$Enums.VideoStatus;
-            progress: number;
             statusMessage: string | null;
             tags: string[];
             folder: string | null;
@@ -117,14 +117,14 @@ export declare class VideoService {
         })[];
         clips: ({
             video: {
+                progress: number;
+                id: string;
                 userId: string;
                 workspaceId: string;
-                id: string;
                 title: string;
                 url: string;
                 duration: number;
                 status: import("@audira/database").$Enums.VideoStatus;
-                progress: number;
                 statusMessage: string | null;
                 tags: string[];
                 folder: string | null;
@@ -196,14 +196,14 @@ export declare class VideoService {
         aspectRatio: string;
         platform: string;
     } | {
+        progress: number;
+        id: string;
         userId: string;
         workspaceId: string;
-        id: string;
         title: string;
         url: string;
         duration: number;
         status: import("@audira/database").$Enums.VideoStatus;
-        progress: number;
         statusMessage: string | null;
         tags: string[];
         folder: string | null;
@@ -243,14 +243,14 @@ export declare class VideoService {
         aspectRatio: string;
         platform: string;
     } | {
+        progress: number;
+        id: string;
         userId: string;
         workspaceId: string;
-        id: string;
         title: string;
         url: string;
         duration: number;
         status: import("@audira/database").$Enums.VideoStatus;
-        progress: number;
         statusMessage: string | null;
         tags: string[];
         folder: string | null;
@@ -290,14 +290,14 @@ export declare class VideoService {
         aspectRatio: string;
         platform: string;
     } | {
+        progress: number;
+        id: string;
         userId: string;
         workspaceId: string;
-        id: string;
         title: string;
         url: string;
         duration: number;
         status: import("@audira/database").$Enums.VideoStatus;
-        progress: number;
         statusMessage: string | null;
         tags: string[];
         folder: string | null;
@@ -337,14 +337,14 @@ export declare class VideoService {
         aspectRatio: string;
         platform: string;
     } | {
+        progress: number;
+        id: string;
         userId: string;
         workspaceId: string;
-        id: string;
         title: string;
         url: string;
         duration: number;
         status: import("@audira/database").$Enums.VideoStatus;
-        progress: number;
         statusMessage: string | null;
         tags: string[];
         folder: string | null;
@@ -359,14 +359,14 @@ export declare class VideoService {
         userId: string;
         workspaceId: string;
     }): Promise<{
+        progress: number;
+        id: string;
         userId: string;
         workspaceId: string;
-        id: string;
         title: string;
         url: string;
         duration: number;
         status: import("@audira/database").$Enums.VideoStatus;
-        progress: number;
         statusMessage: string | null;
         tags: string[];
         folder: string | null;
@@ -408,14 +408,14 @@ export declare class VideoService {
             platform: string;
         }[];
     } & {
+        progress: number;
+        id: string;
         userId: string;
         workspaceId: string;
-        id: string;
         title: string;
         url: string;
         duration: number;
         status: import("@audira/database").$Enums.VideoStatus;
-        progress: number;
         statusMessage: string | null;
         tags: string[];
         folder: string | null;
@@ -425,14 +425,14 @@ export declare class VideoService {
         updatedAt: Date;
     }) | null>;
     importFromUrl(url: string, userId: string, workspaceId: string, requestedAspects?: string[], options?: any): Promise<{
+        progress: number;
+        id: string;
         userId: string;
         workspaceId: string;
-        id: string;
         title: string;
         url: string;
         duration: number;
         status: import("@audira/database").$Enums.VideoStatus;
-        progress: number;
         statusMessage: string | null;
         tags: string[];
         folder: string | null;
