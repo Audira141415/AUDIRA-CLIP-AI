@@ -6,7 +6,9 @@ import { ArrowRight, Zap, Video, Scissors, Check, ChevronDown } from 'lucide-rea
 
 export default function LandingPage() {
   return (
-    <div className="min-h-screen bg-[#FAFAFA] text-black font-sans selection:bg-[#F5A623] selection:text-black overflow-x-hidden">
+    <div className="min-h-screen bg-[#FAFAFA] text-black font-sans selection:bg-[#F5A623] selection:text-black overflow-x-hidden relative">
+      {/* Background Dot Pattern */}
+      <div className="absolute inset-0 z-0 opacity-[0.05] pointer-events-none" style={{ backgroundImage: 'radial-gradient(#000 2px, transparent 2px)', backgroundSize: '32px 32px' }}></div>
       
       {/* Neo-brutalist Navbar */}
       <nav className="w-full bg-white border-b-4 border-black px-6 py-4 flex justify-between items-center sticky top-0 z-50">
@@ -43,9 +45,14 @@ export default function LandingPage() {
             <span className="font-black uppercase text-xs tracking-wider">Powered by Local AI Models</span>
           </div>
           
-          <h1 className="text-6xl md:text-8xl font-black uppercase leading-[0.9] tracking-tighter">
+          {/* Massive Background Text */}
+          <div className="absolute -top-20 -left-10 text-[12rem] font-black text-transparent opacity-10 pointer-events-none select-none z-[-1]" style={{ WebkitTextStroke: '2px black' }}>
+            CLIP IT
+          </div>
+          
+          <h1 className="text-6xl md:text-8xl font-black uppercase leading-[0.9] tracking-tighter relative z-10">
             Cut Videos <br />
-            <span className="bg-[#F5A623] px-2 border-4 border-black inline-block mt-2 shadow-[6px_6px_0px_0px_rgba(0,0,0,1)] rotate-[-2deg]">Like Magic.</span>
+            <span className="bg-[#F5A623] px-2 border-4 border-black inline-block mt-2 shadow-[6px_6px_0px_0px_rgba(0,0,0,1)] -rotate-2 hover:rotate-2 transition-transform cursor-crosshair">Like Magic.</span>
           </h1>
           
           <p className="text-xl md:text-2xl font-bold max-w-lg border-l-4 border-black pl-4">
@@ -53,9 +60,12 @@ export default function LandingPage() {
           </p>
           
           <div className="flex flex-col sm:flex-row gap-4 pt-4">
-            <Link href="/dashboard" className="bg-[#FFEDF4] text-black border-4 border-black font-black uppercase text-xl px-8 py-4 shadow-[6px_6px_0px_0px_rgba(0,0,0,1)] hover:shadow-[2px_2px_0px_0px_rgba(0,0,0,1)] hover:translate-x-[4px] hover:translate-y-[4px] transition-all flex items-center justify-center gap-3 group">
-              Start Clipping
-              <ArrowRight className="w-6 h-6 group-hover:translate-x-1 transition-transform" strokeWidth={3} />
+            <Link href="/dashboard" className="bg-[#FFEDF4] text-black border-4 border-black font-black uppercase text-xl px-8 py-4 shadow-[6px_6px_0px_0px_rgba(0,0,0,1)] hover:shadow-[2px_2px_0px_0px_rgba(0,0,0,1)] hover:translate-x-[4px] hover:translate-y-[4px] hover:bg-[#F5A623] transition-all flex items-center justify-center gap-3 group relative overflow-hidden">
+              <span className="relative z-10 flex items-center gap-3">
+                Start Clipping
+                <ArrowRight className="w-6 h-6 group-hover:translate-x-1 transition-transform" strokeWidth={3} />
+              </span>
+              <div className="absolute inset-0 bg-[#F5A623] translate-y-full group-hover:translate-y-0 transition-transform duration-300 ease-in-out z-0 border-t-4 border-black"></div>
             </Link>
             <Link href="#demo" className="bg-white text-black border-4 border-black font-black uppercase text-xl px-8 py-4 shadow-[6px_6px_0px_0px_rgba(0,0,0,1)] hover:shadow-[2px_2px_0px_0px_rgba(0,0,0,1)] hover:translate-x-[4px] hover:translate-y-[4px] transition-all flex items-center justify-center gap-3">
               <Video className="w-6 h-6" strokeWidth={3} /> Watch Demo
@@ -115,6 +125,19 @@ export default function LandingPage() {
         </motion.div>
       </div>
 
+      {/* Reverse Marquee Banner */}
+      <div className="w-full bg-black text-[#00E5FF] border-b-4 border-black py-3 overflow-hidden flex whitespace-nowrap">
+        <motion.div 
+          animate={{ x: ["-50%", "0%"] }}
+          transition={{ repeat: Infinity, duration: 15, ease: "linear" }}
+          className="flex font-black text-xl uppercase tracking-widest gap-8"
+        >
+          <span>✦ NO MONTHLY FEES ✦ RUNS ON MAC & PC ✦ OPEN SOURCE MODELS ✦ AI COPILOT INCLUDED</span>
+          <span>✦ NO MONTHLY FEES ✦ RUNS ON MAC & PC ✦ OPEN SOURCE MODELS ✦ AI COPILOT INCLUDED</span>
+          <span>✦ NO MONTHLY FEES ✦ RUNS ON MAC & PC ✦ OPEN SOURCE MODELS ✦ AI COPILOT INCLUDED</span>
+        </motion.div>
+      </div>
+
       {/* Features Section */}
       <section id="features" className="max-w-7xl mx-auto px-6 py-24">
         <div className="text-center mb-16">
@@ -122,9 +145,10 @@ export default function LandingPage() {
           <p className="text-xl font-bold max-w-2xl mx-auto">Everything you need to go viral, running completely offline on your own hardware.</p>
         </div>
         
-        <div className="grid grid-cols-1 md:grid-cols-3 gap-8">
+        <div className="grid grid-cols-1 md:grid-cols-3 gap-8 relative z-10">
           {/* Feature 1 */}
-          <div className="bg-white border-4 border-black p-6 shadow-[6px_6px_0px_0px_rgba(0,0,0,1)] hover:-translate-y-2 hover:-translate-x-2 transition-transform">
+          <div className="bg-white border-4 border-black p-6 shadow-[8px_8px_0px_0px_rgba(0,0,0,1)] hover:-translate-y-3 hover:-translate-x-3 hover:shadow-[12px_12px_0px_0px_rgba(0,0,0,1)] transition-all group relative">
+            <div className="absolute -top-4 -right-4 bg-[#F5A623] w-12 h-12 border-4 border-black rounded-full flex items-center justify-center font-black text-xl rotate-12 group-hover:rotate-45 transition-transform z-20 shadow-[2px_2px_0px_0px_rgba(0,0,0,1)]">1</div>
             <div className="aspect-video w-full border-4 border-black mb-6 bg-[#FFEDF4] overflow-hidden">
               <img src="/feature_clipping.png" alt="AI Auto-Clipping" className="w-full h-full object-cover mix-blend-multiply" />
             </div>
@@ -133,7 +157,8 @@ export default function LandingPage() {
           </div>
 
           {/* Feature 2 */}
-          <div className="bg-white border-4 border-black p-6 shadow-[6px_6px_0px_0px_rgba(0,0,0,1)] hover:-translate-y-2 hover:-translate-x-2 transition-transform">
+          <div className="bg-white border-4 border-black p-6 shadow-[8px_8px_0px_0px_rgba(0,0,0,1)] hover:-translate-y-3 hover:-translate-x-3 hover:shadow-[12px_12px_0px_0px_rgba(0,0,0,1)] transition-all group relative mt-0 md:mt-8">
+            <div className="absolute -top-4 -right-4 bg-[#00E5FF] w-12 h-12 border-4 border-black rounded-full flex items-center justify-center font-black text-xl -rotate-12 group-hover:-rotate-45 transition-transform z-20 shadow-[2px_2px_0px_0px_rgba(0,0,0,1)]">2</div>
             <div className="aspect-video w-full border-4 border-black mb-6 bg-[#00E5FF] overflow-hidden">
               <img src="/feature_subtitles.png" alt="Multi-Language Subtitles" className="w-full h-full object-cover mix-blend-multiply" />
             </div>
@@ -142,7 +167,8 @@ export default function LandingPage() {
           </div>
 
           {/* Feature 3 */}
-          <div className="bg-white border-4 border-black p-6 shadow-[6px_6px_0px_0px_rgba(0,0,0,1)] hover:-translate-y-2 hover:-translate-x-2 transition-transform">
+          <div className="bg-white border-4 border-black p-6 shadow-[8px_8px_0px_0px_rgba(0,0,0,1)] hover:-translate-y-3 hover:-translate-x-3 hover:shadow-[12px_12px_0px_0px_rgba(0,0,0,1)] transition-all group relative mt-0 md:mt-16">
+            <div className="absolute -top-4 -right-4 bg-[#FFEDF4] w-12 h-12 border-4 border-black rounded-full flex items-center justify-center font-black text-xl rotate-12 group-hover:rotate-90 transition-transform z-20 shadow-[2px_2px_0px_0px_rgba(0,0,0,1)]">3</div>
             <div className="aspect-video w-full border-4 border-black mb-6 bg-[#F5A623] overflow-hidden">
               <img src="/feature_privacy.png" alt="100% Local Privacy" className="w-full h-full object-cover mix-blend-multiply" />
             </div>
