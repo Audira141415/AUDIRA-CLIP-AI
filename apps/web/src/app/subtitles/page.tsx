@@ -322,7 +322,7 @@ export default function SubtitleStudioPage() {
                  {/* Fake Audio Waveform */}
                  <div className="w-full h-10 flex items-center justify-between gap-[1px]">
                    {[...Array(150)].map((_, i) => (
-                     <div key={i} className="w-1 bg-[#00E5FF]" style={{height: `${20 + Math.random() * 80}%`}}></div>
+                     <div key={i} className="w-1 bg-[#00E5FF]" style={{height: `${20 + (i * 13 % 80)}%`}}></div>
                    ))}
                  </div>
               </div>

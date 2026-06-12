@@ -173,11 +173,16 @@ let VideoService = VideoService_1 = class VideoService {
         }
     }
     async deletePermanently(type, id) {
-        if (type === 'video') {
-            return database_1.prisma.video.delete({ where: { id } });
+        try {
+            if (type === 'video') {
+                return await database_1.prisma.video.delete({ where: { id } });
+            }
+            else if (type === 'clip') {
+                return await database_1.prisma.clip.delete({ where: { id } });
+            }
         }
-        else if (type === 'clip') {
-            return database_1.prisma.clip.delete({ where: { id } });
+        catch (e) {
+            this.logger.warn(`Record already deleted or not found: ${id}`);
         }
     }
     async createVideoRecord(data) {

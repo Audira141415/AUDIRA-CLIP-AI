@@ -65,7 +65,7 @@ export default function EditorPage() {
                     {item.icon && <div className="absolute inset-0 flex items-center justify-center"><div className="w-8 h-8 bg-[#F5A623] border-4 border-black border-t-0 border-r-0"></div></div>}
                     {item.wave && (
                       <div className="absolute inset-0 flex items-center justify-center gap-1 p-2">
-                         {[...Array(12)].map((_, j) => <div key={j} className="w-1.5 bg-[#00E5FF] border border-black" style={{height: `${20 + Math.random() * 80}%`}}></div>)}
+                         {[...Array(12)].map((_, j) => <div key={j} className="w-1.5 bg-[#00E5FF] border border-black" style={{height: `${20 + (j * 13 % 80)}%`}}></div>)}
                       </div>
                     )}
                   </div>
@@ -372,7 +372,7 @@ export default function EditorPage() {
                    <div className="h-full w-[90%] bg-[#00E5FF] border-4 border-black flex items-center px-1 overflow-hidden opacity-90 cursor-pointer shadow-[2px_2px_0px_0px_rgba(0,0,0,1)]">
                       <div className="w-full h-full flex items-center justify-between gap-[2px] opacity-60">
                          {[...Array(200)].map((_, i) => (
-                           <div key={i} className="w-1 bg-black" style={{height: `${10 + Math.random() * 90}%`}}></div>
+                           <div key={i} className="w-1 bg-black" style={{height: `${10 + (i * 17 % 90)}%`}}></div>
                          ))}
                       </div>
                    </div>
@@ -391,7 +391,7 @@ export default function EditorPage() {
                    <div className="h-full w-[100%] bg-[#2B4B7C] border-4 border-black flex items-center px-1 overflow-hidden cursor-pointer shadow-[2px_2px_0px_0px_rgba(0,0,0,1)]">
                       <div className="w-full h-full flex items-center justify-between gap-[2px] opacity-40">
                          {[...Array(200)].map((_, i) => (
-                           <div key={i} className="w-1 bg-[#00E5FF]" style={{height: `${5 + Math.random() * 50}%`}}></div>
+                           <div key={i} className="w-1 bg-[#00E5FF]" style={{height: `${5 + (i * 11 % 50)}%`}}></div>
                          ))}
                       </div>
                    </div>

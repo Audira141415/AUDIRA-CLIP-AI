@@ -135,10 +135,14 @@ export class VideoService {
   }
 
   async deletePermanently(type: string, id: string) {
-    if (type === 'video') {
-      return prisma.video.delete({ where: { id } });
-    } else if (type === 'clip') {
-      return prisma.clip.delete({ where: { id } });
+    try {
+      if (type === 'video') {
+        return await prisma.video.delete({ where: { id } });
+      } else if (type === 'clip') {
+        return await prisma.clip.delete({ where: { id } });
+      }
+    } catch (e) {
+      this.logger.warn(`Record already deleted or not found: ${id}`);
     }
   }
 

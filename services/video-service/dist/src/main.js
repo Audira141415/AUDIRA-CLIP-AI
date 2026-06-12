@@ -11,6 +11,8 @@ async function bootstrap() {
         options: {
             host: process.env.REDIS_HOST || 'localhost',
             port: parseInt(process.env.REDIS_PORT || '6379'),
+            retryAttempts: 10,
+            retryDelay: 3000,
         },
     });
     await app.startAllMicroservices();

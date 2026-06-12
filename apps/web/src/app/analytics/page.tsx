@@ -136,8 +136,8 @@ export default function AnalyticsPage() {
                 
                 {/* Bars */}
                 {Array.from({ length: 20 }).map((_, i) => {
-                  const h1 = 20 + Math.random() * 60;
-                  const h2 = 10 + Math.random() * 40;
+                  const h1 = 20 + (i * 17 % 60);
+                  const h2 = 10 + (i * 23 % 40);
                   return (
                     <div key={i} className="flex-1 flex flex-col justify-end gap-1 group relative">
                       <div className="w-full bg-[#00E5FF] border-2 border-black hover:bg-[#F5A623] transition-colors relative z-10" style={{ height: `${h1}%` }}></div>

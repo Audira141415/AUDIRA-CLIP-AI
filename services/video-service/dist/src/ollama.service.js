@@ -12,7 +12,7 @@ const common_1 = require("@nestjs/common");
 let OllamaService = OllamaService_1 = class OllamaService {
     logger = new common_1.Logger(OllamaService_1.name);
     OLLAMA_URL = 'http://127.0.0.1:11434/api/generate';
-    MODEL = 'deepseek-r1:8b';
+    MODEL = 'qwen2.5:32b';
     async fetchWithRetry(url, options, retries = 3, timeoutMs = 60000) {
         for (let i = 0; i < retries; i++) {
             const controller = new AbortController();
