@@ -12,12 +12,13 @@ const Card = ({ title, desc, children }: { title: string; desc: string; children
   </section>
 );
 
-const SelectRow = ({ label, options, defaultValue }: { label: string; options: string[]; defaultValue?: string }) => (
+const SelectRow = ({ label, options, value, onChange }: { label: string; options: string[]; value?: string; onChange?: (val: string) => void }) => (
   <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
     <span className="text-sm font-medium text-gray-700 w-1/3">{label}</span>
     <div className="relative w-full sm:w-2/3">
       <select 
-        defaultValue={defaultValue}
+        value={value}
+        onChange={(e) => onChange && onChange(e.target.value)}
         className="w-full appearance-none bg-white border border-gray-300 text-gray-700 text-sm rounded-lg px-4 py-2.5 pr-8 focus:outline-none focus:ring-2 focus:ring-[#F5A623] focus:border-transparent"
       >
         {options.map((opt) => <option key={opt} value={opt}>{opt}</option>)}
@@ -41,68 +42,81 @@ const ToggleRow = ({ title, desc, isOn, onToggle }: { title: string; desc: strin
   </div>
 );
 
-const InputRow = ({ label, type = "text", placeholder, defaultValue }: { label: string; type?: string; placeholder?: string; defaultValue?: string }) => (
+const InputRow = ({ label, type = "text", placeholder, value, onChange }: { label: string; type?: string; placeholder?: string; value?: string; onChange?: (val: string) => void }) => (
   <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
     <span className="text-sm font-medium text-gray-700 w-1/3">{label}</span>
     <input 
       type={type} 
       placeholder={placeholder}
-      defaultValue={defaultValue}
+      value={value}
+      onChange={(e) => onChange && onChange(e.target.value)}
       className="w-full sm:w-2/3 bg-white border border-gray-300 text-gray-900 text-sm rounded-lg px-4 py-2.5 focus:outline-none focus:ring-2 focus:ring-[#F5A623] focus:border-transparent"
     />
   </div>
 );
 
 // --- TAB CONTENTS ---
-const GeneralTab = () => (
+const GeneralTab = ({ settings, onChange }: any) => (
   <>
     <Card title="General" desc="Pengaturan dasar aplikasi.">
-      <SelectRow label="Language" options={["Bahasa Indonesia", "English (US)"]} />
+      <SelectRow label="Language" options={["Bahasa Indonesia", "English (US)"]} value={settings.language} onChange={(v) => onChange('language', v)} />
       
       {/* Theme Selector Custom */}
       <div className="flex flex-col sm:flex-row sm:items-start justify-between gap-4">
         <span className="text-sm font-medium text-gray-700 w-1/3 mt-3">Theme</span>
         <div className="w-full sm:w-2/3 grid grid-cols-3 gap-3">
-          <div className="relative border-2 border-[#F5A623] rounded-xl p-4 flex flex-col items-center justify-center gap-2 cursor-pointer bg-white">
-            <div className="absolute -top-2 -right-2 bg-[#F5A623] rounded-full p-0.5 border-2 border-white">
-              <svg className="w-3 h-3 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="3" d="M5 13l4 4L19 7" /></svg>
-            </div>
-            <svg className="w-6 h-6 text-[#F5A623]" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M12 3v1m0 16v1m9-9h-1M4 12H3m15.364 6.364l-.707-.707M6.343 6.343l-.707-.707m12.728 0l-.707.707M6.343 17.657l-.707.707M16 12a4 4 0 11-8 0 4 4 0 018 0z" /></svg>
+          <div onClick={() => onChange('theme', 'Light')} className={`relative border-2 ${settings.theme === 'Light' ? 'border-[#F5A623]' : 'border-gray-200'} rounded-xl p-4 flex flex-col items-center justify-center gap-2 cursor-pointer bg-white`}>
+            {settings.theme === 'Light' && (
+              <div className="absolute -top-2 -right-2 bg-[#F5A623] rounded-full p-0.5 border-2 border-white">
+                <svg className="w-3 h-3 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="3" d="M5 13l4 4L19 7" /></svg>
+              </div>
+            )}
+            <svg className={`w-6 h-6 ${settings.theme === 'Light' ? 'text-[#F5A623]' : 'text-gray-400'}`} fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M12 3v1m0 16v1m9-9h-1M4 12H3m15.364 6.364l-.707-.707M6.343 6.343l-.707-.707m12.728 0l-.707.707M6.343 17.657l-.707.707M16 12a4 4 0 11-8 0 4 4 0 018 0z" /></svg>
             <span className="text-xs font-semibold text-gray-900">Light</span>
           </div>
-          <div className="border border-gray-200 rounded-xl p-4 flex flex-col items-center justify-center gap-2 cursor-pointer hover:border-gray-300 bg-white transition-colors">
-            <svg className="w-6 h-6 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M20.354 15.354A9 9 0 018.646 3.646 9.003 9.003 0 0012 21a9.003 9.003 0 008.354-5.646z" /></svg>
+          <div onClick={() => onChange('theme', 'Dark')} className={`relative border-2 ${settings.theme === 'Dark' ? 'border-[#F5A623]' : 'border-gray-200 hover:border-gray-300'} rounded-xl p-4 flex flex-col items-center justify-center gap-2 cursor-pointer bg-white transition-colors`}>
+            {settings.theme === 'Dark' && (
+              <div className="absolute -top-2 -right-2 bg-[#F5A623] rounded-full p-0.5 border-2 border-white">
+                <svg className="w-3 h-3 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="3" d="M5 13l4 4L19 7" /></svg>
+              </div>
+            )}
+            <svg className={`w-6 h-6 ${settings.theme === 'Dark' ? 'text-[#F5A623]' : 'text-gray-400'}`} fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M20.354 15.354A9 9 0 018.646 3.646 9.003 9.003 0 0012 21a9.003 9.003 0 008.354-5.646z" /></svg>
             <span className="text-xs font-medium text-gray-600">Dark</span>
           </div>
-          <div className="border border-gray-200 rounded-xl p-4 flex flex-col items-center justify-center gap-2 cursor-pointer hover:border-gray-300 bg-white transition-colors">
-            <svg className="w-6 h-6 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M9.75 17L9 20l-1 1h8l-1-1-.75-3M3 13h18M5 17h14a2 2 0 002-2V5a2 2 0 00-2-2H5a2 2 0 00-2 2v10a2 2 0 002 2z" /></svg>
+          <div onClick={() => onChange('theme', 'System')} className={`relative border-2 ${settings.theme === 'System' ? 'border-[#F5A623]' : 'border-gray-200 hover:border-gray-300'} rounded-xl p-4 flex flex-col items-center justify-center gap-2 cursor-pointer bg-white transition-colors`}>
+            {settings.theme === 'System' && (
+              <div className="absolute -top-2 -right-2 bg-[#F5A623] rounded-full p-0.5 border-2 border-white">
+                <svg className="w-3 h-3 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="3" d="M5 13l4 4L19 7" /></svg>
+              </div>
+            )}
+            <svg className={`w-6 h-6 ${settings.theme === 'System' ? 'text-[#F5A623]' : 'text-gray-400'}`} fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M9.75 17L9 20l-1 1h8l-1-1-.75-3M3 13h18M5 17h14a2 2 0 002-2V5a2 2 0 00-2-2H5a2 2 0 00-2 2v10a2 2 0 002 2z" /></svg>
             <span className="text-xs font-medium text-gray-600">System</span>
           </div>
         </div>
       </div>
       <div className="h-px bg-gray-100 w-full my-6"></div>
-      <SelectRow label="Time Zone" options={["(GMT+07:00) Asia/Jakarta", "(GMT+00:00) UTC"]} />
-      <SelectRow label="Date Format" options={["DD/MM/YYYY", "MM/DD/YYYY", "YYYY-MM-DD"]} />
-      <SelectRow label="Default Project Aspect Ratio" options={["16:9 (Widescreen)", "9:16 (Vertical)", "1:1 (Square)"]} />
+      <SelectRow label="Time Zone" options={["(GMT+07:00) Asia/Jakarta", "(GMT+00:00) UTC"]} value={settings.timeZone} onChange={(v) => onChange('timeZone', v)} />
+      <SelectRow label="Date Format" options={["DD/MM/YYYY", "MM/DD/YYYY", "YYYY-MM-DD"]} value={settings.dateFormat} onChange={(v) => onChange('dateFormat', v)} />
+      <SelectRow label="Default Project Aspect Ratio" options={["16:9 (Widescreen)", "9:16 (Vertical)", "1:1 (Square)"]} value={settings.aspectRatio} onChange={(v) => onChange('aspectRatio', v)} />
       <div className="h-px bg-gray-100 w-full my-6"></div>
-      <ToggleRow title="Show tips on startup" desc="Tampilkan panduan saat aplikasi dibuka" isOn={true} />
+      <ToggleRow title="Show tips on startup" desc="Tampilkan panduan saat aplikasi dibuka" isOn={settings.showTips} onToggle={() => onChange('showTips', !settings.showTips)} />
     </Card>
 
     <Card title="Auto Save" desc="Atur preferensi penyimpanan otomatis proyek.">
-      <ToggleRow title="Enable Auto Save" desc="Simpan proyek secara otomatis saat Anda bekerja" isOn={true} />
-      <SelectRow label="Auto Save Interval" options={["1 menit", "5 menit", "10 menit", "30 menit"]} defaultValue="5 menit" />
+      <ToggleRow title="Enable Auto Save" desc="Simpan proyek secara otomatis saat Anda bekerja" isOn={settings.autoSave} onToggle={() => onChange('autoSave', !settings.autoSave)} />
+      <SelectRow label="Auto Save Interval" options={["1 menit", "5 menit", "10 menit", "30 menit"]} value={settings.autoSaveInterval} onChange={(v) => onChange('autoSaveInterval', v)} />
     </Card>
 
     <Card title="Export Defaults" desc="Pengaturan default untuk ekspor video.">
-      <SelectRow label="Default Resolution" options={["1080p (1920x1080)", "4K (3840x2160)", "720p (1280x720)"]} />
-      <SelectRow label="Default Frame Rate" options={["24 fps", "30 fps", "60 fps"]} defaultValue="30 fps" />
-      <SelectRow label="Default Export Format" options={["MP4", "MOV", "WEBM"]} />
-      <SelectRow label="Default Video Quality" options={["Low", "Medium", "High", "Ultra"]} defaultValue="High" />
+      <SelectRow label="Default Resolution" options={["1080p (1920x1080)", "4K (3840x2160)", "720p (1280x720)"]} value={settings.exportRes} onChange={(v) => onChange('exportRes', v)} />
+      <SelectRow label="Default Frame Rate" options={["24 fps", "30 fps", "60 fps"]} value={settings.exportFps} onChange={(v) => onChange('exportFps', v)} />
+      <SelectRow label="Default Export Format" options={["MP4", "MOV", "WEBM"]} value={settings.exportFormat} onChange={(v) => onChange('exportFormat', v)} />
+      <SelectRow label="Default Video Quality" options={["Low", "Medium", "High", "Ultra"]} value={settings.exportQuality} onChange={(v) => onChange('exportQuality', v)} />
     </Card>
   </>
 );
 
-const ProfileTab = () => (
+const ProfileTab = ({ settings, onChange }: any) => (
   <Card title="Profile Information" desc="Perbarui detail profil publik dan informasi pribadi Anda.">
     <div className="flex items-center gap-6 mb-6">
       <div className="w-20 h-20 bg-orange-300 rounded-full flex items-center justify-center text-white font-bold text-2xl shadow-inner">
@@ -114,17 +128,13 @@ const ProfileTab = () => (
       </div>
     </div>
     <div className="h-px bg-gray-100 w-full my-6"></div>
-    <InputRow label="Full Name" defaultValue="Agus Dwi R" />
-    <InputRow label="Email Address" type="email" defaultValue="audira@clip.ai" />
-    <InputRow label="Role / Job Title" defaultValue="Lead Architect" />
-    
-    <div className="flex justify-end pt-4">
-      <button className="px-6 py-2.5 bg-[#F5A623] text-white rounded-xl text-sm font-bold hover:bg-orange-500 transition-colors shadow-sm">Save Changes</button>
-    </div>
+    <InputRow label="Full Name" value={settings.profileName} onChange={(v) => onChange('profileName', v)} />
+    <InputRow label="Email Address" type="email" value={settings.profileEmail} onChange={(v) => onChange('profileEmail', v)} />
+    <InputRow label="Role / Job Title" value={settings.profileRole} onChange={(v) => onChange('profileRole', v)} />
   </Card>
 );
 
-const PreferencesTab = () => (
+const PreferencesTab = ({ settings, onChange }: any) => (
   <Card title="Editor Preferences" desc="Sesuaikan antarmuka Editor dan AI Copilot dengan gaya kerja Anda.">
     {/* NEW SECTION: AI Engine Settings */}
     <div className="mb-6 p-4 bg-[#FFF8EB] border border-[#F5A623]/30 rounded-xl">
@@ -133,14 +143,14 @@ const PreferencesTab = () => (
         AI Engine Provider (Local)
       </h4>
       <p className="text-xs text-gray-600 mb-4">Pilih model kecerdasan buatan lokal yang akan digunakan sebagai "Otak" untuk memotong video dan menulis teks.</p>
-      <SelectRow label="Active AI Model" options={["deepseek-r1:8b (Fastest)", "deepseek-r1:32b (Smart)", "qwen2.5:32b (Multilingual Pro)", "gemma2:27b (Creative)", "qwen2.5-coder:32b (Logic)"]} defaultValue="deepseek-r1:8b (Fastest)" />
+      <SelectRow label="Active AI Model" options={["deepseek-r1:8b (Fastest)", "deepseek-r1:32b (Smart)", "qwen2.5:32b (Multilingual Pro)", "gemma2:27b (Creative)", "qwen2.5-coder:32b (Logic)"]} value={settings.aiModel} onChange={(v) => onChange('aiModel', v)} />
     </div>
 
-    <SelectRow label="Default Subtitle Font" options={["Plus Jakarta Sans", "Roboto", "Inter", "Arial"]} />
-    <SelectRow label="Subtitle Font Size" options={["Small", "Medium", "Large", "Extra Large"]} defaultValue="Medium" />
-    <ToggleRow title="Auto-Generate Subtitles" desc="Selalu buat subtitle otomatis saat mengunggah video baru" isOn={true} />
-    <ToggleRow title="AI Highlight Detection" desc="Gunakan AI untuk mendeteksi momen penting secara otomatis" isOn={true} />
-    <ToggleRow title="Show Audio Waveforms" desc="Tampilkan gelombang audio di timeline editor" isOn={true} />
+    <SelectRow label="Default Subtitle Font" options={["Plus Jakarta Sans", "Roboto", "Inter", "Arial"]} value={settings.subtitleFont} onChange={(v) => onChange('subtitleFont', v)} />
+    <SelectRow label="Subtitle Font Size" options={["Small", "Medium", "Large", "Extra Large"]} value={settings.subtitleSize} onChange={(v) => onChange('subtitleSize', v)} />
+    <ToggleRow title="Auto-Generate Subtitles" desc="Selalu buat subtitle otomatis saat mengunggah video baru" isOn={settings.autoSubtitles} onToggle={() => onChange('autoSubtitles', !settings.autoSubtitles)} />
+    <ToggleRow title="AI Highlight Detection" desc="Gunakan AI untuk mendeteksi momen penting secara otomatis" isOn={settings.aiHighlight} onToggle={() => onChange('aiHighlight', !settings.aiHighlight)} />
+    <ToggleRow title="Show Audio Waveforms" desc="Tampilkan gelombang audio di timeline editor" isOn={settings.showWaveforms} onToggle={() => onChange('showWaveforms', !settings.showWaveforms)} />
   </Card>
 );
 
@@ -309,6 +319,54 @@ const AdvancedTab = () => (
 // --- MAIN PAGE COMPONENT ---
 export default function Settings() {
   const [activeTab, setActiveTab] = useState("General");
+  
+  // Settings State Management
+  const [settings, setSettings] = useState({
+    language: 'Bahasa Indonesia',
+    theme: 'Light',
+    timeZone: '(GMT+07:00) Asia/Jakarta',
+    dateFormat: 'DD/MM/YYYY',
+    aspectRatio: '16:9 (Widescreen)',
+    showTips: true,
+    autoSave: true,
+    autoSaveInterval: '5 menit',
+    exportRes: '1080p (1920x1080)',
+    exportFps: '30 fps',
+    exportFormat: 'MP4',
+    exportQuality: 'High',
+    profileName: 'Agus Dwi R',
+    profileEmail: 'audira@clip.ai',
+    profileRole: 'Lead Architect',
+    aiModel: 'deepseek-r1:8b (Fastest)',
+    subtitleFont: 'Plus Jakarta Sans',
+    subtitleSize: 'Medium',
+    autoSubtitles: true,
+    aiHighlight: true,
+    showWaveforms: true,
+  });
+
+  const [hasUnsavedChanges, setHasUnsavedChanges] = useState(false);
+  const [showToast, setShowToast] = useState(false);
+
+  React.useEffect(() => {
+    // Load from local storage if exists
+    const saved = localStorage.getItem('audira_settings');
+    if (saved) {
+      try { setSettings(prev => ({ ...prev, ...JSON.parse(saved) })); } catch (e) {}
+    }
+  }, []);
+
+  const handleSettingChange = (key: string, value: any) => {
+    setSettings(prev => ({ ...prev, [key]: value }));
+    setHasUnsavedChanges(true);
+  };
+
+  const handleSaveAll = () => {
+    localStorage.setItem('audira_settings', JSON.stringify(settings));
+    setHasUnsavedChanges(false);
+    setShowToast(true);
+    setTimeout(() => setShowToast(false), 3000);
+  };
 
   const tabs = [
     { name: 'General', icon: 'M10.325 4.317c.426-1.756 2.924-1.756 3.35 0a1.724 1.724 0 002.573 1.066c1.543-.94 3.31.826 2.37 2.37a1.724 1.724 0 001.065 2.572c1.756.426 1.756 2.924 0 3.35a1.724 1.724 0 00-1.066 2.573c.94 1.543-.826 3.31-2.37 2.37a1.724 1.724 0 00-2.572 1.065c-.426 1.756-2.924 1.756-3.35 0a1.724 1.724 0 00-2.573-1.066c-1.543.94-3.31-.826-2.37-2.37a1.724 1.724 0 00-1.065-2.572c-1.756-.426-1.756-2.924 0-3.35a1.724 1.724 0 001.066-2.573c-.94-1.543.826-3.31 2.37-2.37.996.608 2.296.07 2.572-1.065z' },
@@ -322,27 +380,44 @@ export default function Settings() {
     { name: 'Advanced', icon: 'M10 20l4-16m4 4l4 4-4 4M6 16l-4-4 4-4' },
   ];
 
+  // Sync tab with URL on mount
+  React.useEffect(() => {
+    const params = new URLSearchParams(window.location.search);
+    const tabParam = params.get('tab');
+    if (tabParam) {
+      const match = tabs.find(t => t.name.toLowerCase() === tabParam.toLowerCase());
+      if (match) setActiveTab(match.name);
+    }
+  }, []);
+
+  const handleTabChange = (name: string) => {
+    setActiveTab(name);
+    window.history.pushState(null, '', `/settings?tab=${name.toLowerCase()}`);
+  };
+
   const renderContent = () => {
     switch (activeTab) {
-      case 'General': return <GeneralTab />;
-      case 'Profile': return <ProfileTab />;
-      case 'Preferences': return <PreferencesTab />;
+      case 'General': return <GeneralTab settings={settings} onChange={handleSettingChange} />;
+      case 'Profile': return <ProfileTab settings={settings} onChange={handleSettingChange} />;
+      case 'Preferences': return <PreferencesTab settings={settings} onChange={handleSettingChange} />;
       case 'Storage': return <StorageTab />;
       case 'Billing': return <BillingTab />;
       case 'Integrations': return <IntegrationsTab />;
       case 'Notifications': return <NotificationsTab />;
       case 'Security': return <SecurityTab />;
       case 'Advanced': return <AdvancedTab />;
-      default: return <GeneralTab />;
+      default: return <GeneralTab settings={settings} onChange={handleSettingChange} />;
     }
   };
 
   return (
     <DashboardLayout>
-      <div className="w-full pb-12">
-        <div className="mb-8">
-          <h1 className="text-3xl font-bold text-gray-900 tracking-tight">Settings</h1>
-          <p className="text-gray-500 mt-1">Kelola preferensi akun dan aplikasi Anda</p>
+      <div className="w-full pb-32"> {/* Increased pb for sticky footer */}
+        <div className="mb-8 flex justify-between items-end">
+          <div>
+            <h1 className="text-3xl font-bold text-gray-900 tracking-tight">Settings</h1>
+            <p className="text-gray-500 mt-1">Kelola preferensi akun dan aplikasi Anda</p>
+          </div>
         </div>
 
         <div className="flex flex-col lg:flex-row gap-8">
@@ -353,7 +428,7 @@ export default function Settings() {
               return (
                 <button
                   key={tab.name}
-                  onClick={() => setActiveTab(tab.name)}
+                  onClick={() => handleTabChange(tab.name)}
                   className={`w-full flex items-center gap-3 px-4 py-3 rounded-xl text-sm font-semibold transition-colors ${
                     isActive
                       ? 'bg-[#FFF8EB] text-gray-900'
@@ -374,6 +449,32 @@ export default function Settings() {
             {renderContent()}
           </div>
         </div>
+
+        {/* Floating Save Bar */}
+        {hasUnsavedChanges && (
+          <div className="fixed bottom-8 left-1/2 -translate-x-1/2 ml-32 z-50 bg-gray-900 text-white px-6 py-4 rounded-2xl shadow-2xl flex items-center gap-6 animate-in slide-in-from-bottom-10 fade-in border border-gray-700">
+            <div className="flex items-center gap-3">
+              <div className="w-2 h-2 bg-[#F5A623] rounded-full animate-pulse"></div>
+              <span className="text-sm font-medium">Anda memiliki pengaturan yang belum disimpan.</span>
+            </div>
+            <div className="flex gap-3">
+              <button onClick={() => {
+                const saved = localStorage.getItem('audira_settings');
+                if (saved) setSettings(JSON.parse(saved));
+                setHasUnsavedChanges(false);
+              }} className="px-4 py-2 text-sm font-semibold text-gray-300 hover:text-white transition-colors">Batal</button>
+              <button onClick={handleSaveAll} className="px-6 py-2 bg-[#F5A623] text-white rounded-xl text-sm font-bold hover:bg-orange-500 transition-colors shadow-sm">Simpan Perubahan</button>
+            </div>
+          </div>
+        )}
+
+        {/* Success Toast */}
+        {showToast && (
+          <div className="fixed top-8 right-8 z-50 bg-white border border-green-200 text-green-800 px-6 py-4 rounded-2xl shadow-xl flex items-center gap-3 animate-in slide-in-from-top-10 fade-in">
+            <svg className="w-5 h-5 text-green-500" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M5 13l4 4L19 7" /></svg>
+            <span className="text-sm font-bold">Pengaturan berhasil disimpan!</span>
+          </div>
+        )}
 
         {/* Footer */}
         <footer className="mt-16 flex flex-col sm:flex-row justify-between items-center text-xs text-gray-500 gap-4">
