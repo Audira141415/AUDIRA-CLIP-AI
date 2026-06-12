@@ -20,33 +20,33 @@ export default function Sidebar() {
   ];
 
   return (
-    <aside className="w-64 flex-shrink-0 bg-white h-screen flex flex-col py-6 px-4 sticky top-0 z-50 border-r border-gray-100">
+    <aside className="w-64 flex-shrink-0 bg-white h-screen flex flex-col py-6 px-5 sticky top-0 z-50 border-r-4 border-black">
       {/* Logo Area */}
-      <div className="flex items-center gap-3 mb-10 px-2 cursor-pointer">
-        <div className="w-8 h-8 bg-black rounded flex items-center justify-center shrink-0">
-          <div className="w-3.5 h-3.5 bg-[#F5A623] rounded-sm" />
+      <div className="flex items-center gap-3 mb-12 px-1 cursor-pointer">
+        <div className="w-9 h-9 bg-[#F5A623] border-2 border-black flex items-center justify-center shrink-0 shadow-[2px_2px_0px_0px_rgba(0,0,0,1)]">
+          <div className="w-3.5 h-3.5 bg-black" />
         </div>
-        <h1 className="font-extrabold text-xl tracking-tight text-black flex items-center gap-1">
-          AUDIRA <span className="bg-[#FFEDF4] text-black px-1.5 py-0.5 rounded text-sm">CLIP</span>
+        <h1 className="font-black text-2xl tracking-tighter text-black flex items-center gap-1.5 uppercase">
+          AUDIRA <span className="bg-[#FFEDF4] text-black px-1.5 py-0.5 border-2 border-black text-xs shadow-[2px_2px_0px_0px_rgba(0,0,0,1)]">CLIP</span>
         </h1>
       </div>
       
       {/* Navigation */}
-      <nav className="flex-1 space-y-1.5 overflow-y-auto">
+      <nav className="flex-1 space-y-3 overflow-y-auto pb-8 pr-2 custom-scrollbar">
         {menus.map((menu) => {
           const isActive = pathname === menu.href || (menu.href !== "/" && pathname.startsWith(menu.href));
           return (
             <Link
               key={menu.name}
               href={menu.href}
-              className={`flex items-center gap-3 px-4 py-2.5 rounded-xl text-[13px] font-bold transition-colors duration-200 ${
+              className={`flex items-center gap-3 px-4 py-3 text-sm font-black uppercase tracking-wider transition-all duration-150 ${
                 isActive
-                  ? "bg-yellow-50 text-[#F5A623]"
-                  : "text-gray-500 hover:text-gray-900 hover:bg-gray-50"
+                  ? "bg-[#F5A623] text-black border-2 border-black shadow-[4px_4px_0px_0px_rgba(0,0,0,1)] -translate-y-[2px] -translate-x-[2px]"
+                  : "bg-white text-black border-2 border-transparent hover:border-black hover:shadow-[4px_4px_0px_0px_rgba(0,0,0,1)] hover:-translate-y-[2px] hover:-translate-x-[2px]"
               }`}
             >
-              <svg className="w-4 h-4 shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2.5" d={menu.icon} />
+              <svg className={`w-5 h-5 shrink-0 ${isActive ? 'text-black' : 'text-gray-700'}`} fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path strokeLinecap="square" strokeLinejoin="miter" strokeWidth="2.5" d={menu.icon} />
               </svg>
               {menu.name}
             </Link>
