@@ -137,13 +137,28 @@ const ProfileTab = ({ settings, onChange }: any) => (
 const PreferencesTab = ({ settings, onChange }: any) => (
   <Card title="Editor Preferences" desc="Sesuaikan antarmuka Editor dan AI Copilot dengan gaya kerja Anda.">
     {/* NEW SECTION: AI Engine Settings */}
-    <div className="mb-6 p-4 bg-[#FFF8EB] border border-[#F5A623]/30 rounded-xl">
-      <h4 className="text-sm font-bold text-gray-900 mb-1 flex items-center gap-2">
-        <svg className="w-4 h-4 text-[#F5A623]" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="m12 3-1.912 5.813a2 2 0 0 1-1.275 1.275L3 12l5.813 1.912a2 2 0 0 1 1.275 1.275L12 21l1.912-5.813a2 2 0 0 1 1.275-1.275L21 12l-5.813-1.912a2 2 0 0 1-1.275-1.275L12 3Z"/></svg>
-        AI Engine Provider (Local)
-      </h4>
-      <p className="text-xs text-gray-600 mb-4">Pilih model kecerdasan buatan lokal yang akan digunakan sebagai "Otak" untuk memotong video dan menulis teks.</p>
-      <SelectRow label="Active AI Model" options={["deepseek-r1:8b (Fastest)", "deepseek-r1:32b (Smart)", "qwen2.5:32b (Multilingual Pro)", "gemma2:27b (Creative)", "qwen2.5-coder:32b (Logic)"]} value={settings.aiModel} onChange={(v) => onChange('aiModel', v)} />
+    <div className="mb-6 p-5 bg-[#FFF8EB] border border-[#F5A623]/30 rounded-xl space-y-4">
+      <div className="mb-2">
+        <h4 className="text-sm font-bold text-gray-900 mb-1 flex items-center gap-2">
+          <svg className="w-4 h-4 text-[#F5A623]" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="m12 3-1.912 5.813a2 2 0 0 1-1.275 1.275L3 12l5.813 1.912a2 2 0 0 1 1.275 1.275L12 21l1.912-5.813a2 2 0 0 1 1.275-1.275L21 12l-5.813-1.912a2 2 0 0 1-1.275-1.275L12 3Z"/></svg>
+          AI Engine Provider
+        </h4>
+        <p className="text-xs text-gray-600">Pilih model kecerdasan buatan (Lokal atau Cloud) yang akan digunakan sebagai "Otak" utama.</p>
+      </div>
+
+      <SelectRow label="Active AI Model" options={[
+        "--- Local Models (Ollama) ---",
+        "deepseek-r1:8b (Fastest)", "deepseek-r1:32b (Smart)", "qwen2.5:32b (Multilingual)", "gemma2:27b (Creative)", "qwen2.5-coder:32b (Logic)",
+        "--- Cloud Models (API Required) ---",
+        "gpt-4o (OpenAI)", "gpt-4o-mini (OpenAI)", "grok-2 (xAI)", "claude-3-5-sonnet (Anthropic)", "gemini-1.5-pro (Google)"
+      ]} value={settings.aiModel} onChange={(v) => onChange('aiModel', v)} />
+
+      <div className="pt-4 mt-2 border-t border-[#F5A623]/20 space-y-3">
+        <h5 className="text-xs font-bold text-gray-700 uppercase tracking-wider">Cloud API Keys (Opsional)</h5>
+        <InputRow label="OpenAI API Key" type="password" placeholder="sk-proj-..." value={settings.openAiKey || ''} onChange={(v) => onChange('openAiKey', v)} />
+        <InputRow label="Grok (xAI) API Key" type="password" placeholder="xai-..." value={settings.grokKey || ''} onChange={(v) => onChange('grokKey', v)} />
+        <InputRow label="Anthropic API Key" type="password" placeholder="sk-ant-..." value={settings.anthropicKey || ''} onChange={(v) => onChange('anthropicKey', v)} />
+      </div>
     </div>
 
     <SelectRow label="Default Subtitle Font" options={["Plus Jakarta Sans", "Roboto", "Inter", "Arial"]} value={settings.subtitleFont} onChange={(v) => onChange('subtitleFont', v)} />
@@ -338,6 +353,9 @@ export default function Settings() {
     profileEmail: 'audira@clip.ai',
     profileRole: 'Lead Architect',
     aiModel: 'deepseek-r1:8b (Fastest)',
+    openAiKey: '',
+    grokKey: '',
+    anthropicKey: '',
     subtitleFont: 'Plus Jakarta Sans',
     subtitleSize: 'Medium',
     autoSubtitles: true,
