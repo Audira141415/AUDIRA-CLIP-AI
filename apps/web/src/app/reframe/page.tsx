@@ -1,7 +1,7 @@
 'use client';
 
 import DashboardLayout from "@/components/layout/DashboardLayout";
-import { Check, ChevronRight, Lock, Video, Play, Crop, Maximize, MousePointer2, Focus, Instagram, Youtube, HelpCircle, ArrowRight } from "lucide-react";
+import { Check, ChevronRight, Lock, Video, Play, Crop, Maximize, MousePointer2, Focus, Smartphone, MonitorPlay, HelpCircle, ArrowRight } from "lucide-react";
 
 export default function ReframePage() {
   const steps = [
@@ -19,11 +19,11 @@ export default function ReframePage() {
   ];
 
   const presets = [
-    { icon: Youtube, label: "YouTube Shorts", desc: "9:16 • 1080x1920" },
-    { icon: Instagram, label: "Instagram Reels", desc: "9:16 • 1080x1920" },
+    { icon: MonitorPlay, label: "YouTube Shorts", desc: "9:16 • 1080x1920" },
+    { icon: Smartphone, label: "Instagram Reels", desc: "9:16 • 1080x1920" },
     { icon: Video, label: "TikTok", desc: "9:16 • 1080x1920" },
-    { icon: Instagram, label: "Instagram Post", desc: "1:1 • 1080x1080" },
-    { icon: Youtube, label: "YouTube Video", desc: "16:9 • 1920x1080" }
+    { icon: Smartphone, label: "Instagram Post", desc: "1:1 • 1080x1080" },
+    { icon: MonitorPlay, label: "YouTube Video", desc: "16:9 • 1920x1080" }
   ];
 
   const styles = [
