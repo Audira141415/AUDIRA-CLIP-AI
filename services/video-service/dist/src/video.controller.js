@@ -15,23 +15,30 @@ Object.defineProperty(exports, "__esModule", { value: true });
 exports.VideoController = void 0;
 const common_1 = require("@nestjs/common");
 const platform_express_1 = require("@nestjs/platform-express");
+const swagger_1 = require("@nestjs/swagger");
 const video_service_1 = require("./video.service");
+const video_queue_1 = require("./queue/video.queue");
 const multer_1 = require("multer");
 const path_1 = require("path");
 let VideoController = class VideoController {
     videoService;
-    constructor(videoService) {
+    queueProducer;
+    constructor(videoService, queueProducer) {
         this.videoService = videoService;
+        this.queueProducer = queueProducer;
+    }
+    healthCheck() {
+        return { status: 'ok', service: 'video-service' };
     }
     async getStats(userId, workspaceId) {
         if (!userId || !workspaceId)
             throw new common_1.BadRequestException('userId and workspaceId are required');
         return this.videoService.getDashboardStats(userId, workspaceId);
     }
-    async getLibrary(userId, workspaceId, tab, sortBy, folder) {
+    async getLibrary(userId, workspaceId, tab, sortBy, folder, search, tag, duration, owner) {
         if (!userId || !workspaceId)
             throw new common_1.BadRequestException('userId and workspaceId are required');
-        return this.videoService.getLibrary(userId, workspaceId, { tab, sortBy, folder });
+        return this.videoService.getLibrary(userId, workspaceId, { tab, sortBy, folder, search, tag, duration, owner });
     }
     async toggleFavorite(type, id) {
         return this.videoService.toggleFavorite(type, id);
@@ -45,6 +52,18 @@ let VideoController = class VideoController {
     async deletePermanently(type, id) {
         return this.videoService.deletePermanently(type, id);
     }
+    async renameMedia(type, id, title) {
+        if (!title)
+            throw new common_1.BadRequestException('title is required');
+        return this.videoService.renameMedia(type, id, title);
+    }
+    async mergeClips(clipIds, userId, workspaceId) {
+        if (!clipIds || !clipIds.length)
+            throw new common_1.BadRequestException('clipIds are required');
+        if (!userId || !workspaceId)
+            throw new common_1.BadRequestException('userId and workspaceId are required');
+        return this.videoService.mergeClips(clipIds, userId, workspaceId);
+    }
     async uploadVideo(file, userId, workspaceId, aspectsStr, intent, lang, captions, broll, layoutMode) {
         if (!file)
             throw new common_1.BadRequestException('File is required');
@@ -52,12 +71,12 @@ let VideoController = class VideoController {
             throw new common_1.BadRequestException('userId and workspaceId are required');
         const videoRecord = await this.videoService.createVideoRecord({
             title: file.originalname,
-            url: `http://localhost:3001/uploads/${file.filename}`,
+            url: `http://localhost:3345/uploads/${file.filename}`,
             userId,
             workspaceId
         });
         const aspects = aspectsStr ? aspectsStr.split(',') : undefined;
-        this.videoService.processVideo(videoRecord.id, aspects, { intent, lang, captions, broll, layoutMode });
+        this.queueProducer.addProcessJob(videoRecord.id, aspects, { intent, lang, captions, broll, layoutMode });
         return {
             success: true,
             message: "Video uploaded successfully",
@@ -66,7 +85,7 @@ let VideoController = class VideoController {
     }
     async processVideo(id, aspectsStr, intent) {
         const aspects = aspectsStr ? aspectsStr.split(',') : undefined;
-        this.videoService.processVideo(id, aspects, { intent });
+        this.queueProducer.addProcessJob(id, aspects, { intent });
         return { success: true, message: "Processing started" };
     }
     async importUrl(url, userId, workspaceId, aspectsStr, intent, lang, captions, broll, quality, timeStart, timeEnd, clipLength, layoutMode, topic) {
@@ -75,8 +94,15 @@ let VideoController = class VideoController {
         if (!userId || !workspaceId)
             throw new common_1.BadRequestException('userId and workspaceId are required');
         const aspects = aspectsStr ? aspectsStr.split(',') : undefined;
-        const videoRecord = await this.videoService.importFromUrl(url, userId, workspaceId, aspects, {
-            intent, lang, captions, broll, quality, timeStart, timeEnd, clipLength, layoutMode, topic
+        const videoRecord = await this.videoService.createVideoRecord({
+            title: "Menunggu Antrean...",
+            url: "pending",
+            userId,
+            workspaceId
+        });
+        this.queueProducer.addImportJob(url, userId, workspaceId, aspects, {
+            intent, lang, captions, broll, quality, timeStart, timeEnd, clipLength, layoutMode, topic,
+            preCreatedId: videoRecord.id
         });
         return {
             success: true,
@@ -105,10 +131,33 @@ let VideoController = class VideoController {
             throw new common_1.BadRequestException('clipId and keyword are required');
         return this.videoService.generateBRollForClip(clipId, body.keyword, body.duration);
     }
+    async transcribeClip(clipId) {
+        if (!clipId)
+            throw new common_1.BadRequestException('clipId is required');
+        return this.videoService.transcribeClip(clipId);
+    }
+    async getSubtitles(clipId) {
+        if (!clipId)
+            throw new common_1.BadRequestException('clipId is required');
+        return this.videoService.getSubtitles(clipId);
+    }
+    async saveSubtitles(clipId, content) {
+        if (!clipId || !content)
+            throw new common_1.BadRequestException('clipId and content are required');
+        return this.videoService.saveSubtitles(clipId, content);
+    }
 };
 exports.VideoController = VideoController;
 __decorate([
+    (0, common_1.Get)('health'),
+    (0, swagger_1.ApiOperation)({ summary: 'Health check endpoint' }),
+    __metadata("design:type", Function),
+    __metadata("design:paramtypes", []),
+    __metadata("design:returntype", void 0)
+], VideoController.prototype, "healthCheck", null);
+__decorate([
     (0, common_1.Get)('stats'),
+    (0, swagger_1.ApiOperation)({ summary: 'Get video dashboard statistics' }),
     __param(0, (0, common_1.Query)('userId')),
     __param(1, (0, common_1.Query)('workspaceId')),
     __metadata("design:type", Function),
@@ -122,8 +171,12 @@ __decorate([
     __param(2, (0, common_1.Query)('tab')),
     __param(3, (0, common_1.Query)('sortBy')),
     __param(4, (0, common_1.Query)('folder')),
+    __param(5, (0, common_1.Query)('search')),
+    __param(6, (0, common_1.Query)('tag')),
+    __param(7, (0, common_1.Query)('duration')),
+    __param(8, (0, common_1.Query)('owner')),
     __metadata("design:type", Function),
-    __metadata("design:paramtypes", [String, String, String, String, String]),
+    __metadata("design:paramtypes", [String, String, String, String, String, String, String, String, String]),
     __metadata("design:returntype", Promise)
 ], VideoController.prototype, "getLibrary", null);
 __decorate([
@@ -159,10 +212,35 @@ __decorate([
     __metadata("design:returntype", Promise)
 ], VideoController.prototype, "deletePermanently", null);
 __decorate([
+    (0, common_1.Post)('rename/:type/:id'),
+    __param(0, (0, common_1.Param)('type')),
+    __param(1, (0, common_1.Param)('id')),
+    __param(2, (0, common_1.Body)('title')),
+    __metadata("design:type", Function),
+    __metadata("design:paramtypes", [String, String, String]),
+    __metadata("design:returntype", Promise)
+], VideoController.prototype, "renameMedia", null);
+__decorate([
+    (0, common_1.Post)('merge'),
+    __param(0, (0, common_1.Body)('clipIds')),
+    __param(1, (0, common_1.Query)('userId')),
+    __param(2, (0, common_1.Query)('workspaceId')),
+    __metadata("design:type", Function),
+    __metadata("design:paramtypes", [Array, String, String]),
+    __metadata("design:returntype", Promise)
+], VideoController.prototype, "mergeClips", null);
+__decorate([
     (0, common_1.Post)('upload'),
+    (0, swagger_1.ApiOperation)({ summary: 'Upload a new video file' }),
     (0, common_1.UseInterceptors)((0, platform_express_1.FileInterceptor)('file', {
         storage: (0, multer_1.diskStorage)({
-            destination: './uploads',
+            destination: (req, file, cb) => {
+                const uploadPath = './uploads';
+                if (!require('fs').existsSync(uploadPath)) {
+                    require('fs').mkdirSync(uploadPath, { recursive: true });
+                }
+                cb(null, uploadPath);
+            },
             filename: (req, file, cb) => {
                 const uniqueSuffix = Date.now() + '-' + Math.round(Math.random() * 1E9);
                 cb(null, `${file.fieldname}-${uniqueSuffix}${(0, path_1.extname)(file.originalname)}`);
@@ -213,6 +291,7 @@ __decorate([
 ], VideoController.prototype, "importUrl", null);
 __decorate([
     (0, common_1.Post)('clip/:id/export'),
+    (0, swagger_1.ApiOperation)({ summary: 'Export and render a generated clip' }),
     __param(0, (0, common_1.Param)('id')),
     __param(1, (0, common_1.Body)()),
     __metadata("design:type", Function),
@@ -242,8 +321,32 @@ __decorate([
     __metadata("design:paramtypes", [String, Object]),
     __metadata("design:returntype", Promise)
 ], VideoController.prototype, "generateBRoll", null);
+__decorate([
+    (0, common_1.Post)('clip/:id/transcribe'),
+    __param(0, (0, common_1.Param)('id')),
+    __metadata("design:type", Function),
+    __metadata("design:paramtypes", [String]),
+    __metadata("design:returntype", Promise)
+], VideoController.prototype, "transcribeClip", null);
+__decorate([
+    (0, common_1.Get)('clip/:id/subtitles'),
+    __param(0, (0, common_1.Param)('id')),
+    __metadata("design:type", Function),
+    __metadata("design:paramtypes", [String]),
+    __metadata("design:returntype", Promise)
+], VideoController.prototype, "getSubtitles", null);
+__decorate([
+    (0, common_1.Post)('clip/:id/subtitles'),
+    __param(0, (0, common_1.Param)('id')),
+    __param(1, (0, common_1.Body)()),
+    __metadata("design:type", Function),
+    __metadata("design:paramtypes", [String, Object]),
+    __metadata("design:returntype", Promise)
+], VideoController.prototype, "saveSubtitles", null);
 exports.VideoController = VideoController = __decorate([
+    (0, swagger_1.ApiTags)('Video'),
     (0, common_1.Controller)('video'),
-    __metadata("design:paramtypes", [video_service_1.VideoService])
+    __metadata("design:paramtypes", [video_service_1.VideoService,
+        video_queue_1.VideoQueueProducer])
 ], VideoController);
 //# sourceMappingURL=video.controller.js.map

@@ -1,3 +1,9 @@
 faster-whisper
 opencv-python
 numpy
+fastapi
+uvicorn
+python-multipart
+websockets
+webrtcvad
+pydub

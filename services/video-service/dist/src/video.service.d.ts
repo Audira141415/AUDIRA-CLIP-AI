@@ -1,3 +1,4 @@
+import { ClientProxy } from '@nestjs/microservices';
 import { OllamaService } from './ollama.service';
 import { TranscriptionService } from './transcription.service';
 import { HeatmapService } from './heatmap.service';
@@ -5,10 +6,11 @@ export declare class VideoService {
     private readonly ollamaService;
     private readonly transcriptionService;
     private readonly heatmapService;
+    private readonly gatewayClient;
     private readonly logger;
     private ffmpegQueue;
     private enqueueFfmpegTask;
-    constructor(ollamaService: OllamaService, transcriptionService: TranscriptionService, heatmapService: HeatmapService);
+    constructor(ollamaService: OllamaService, transcriptionService: TranscriptionService, heatmapService: HeatmapService, gatewayClient: ClientProxy);
     getDashboardStats(userId: string, workspaceId: string): Promise<{
         totalVideos: number;
         totalClips: number;
@@ -353,6 +355,70 @@ export declare class VideoService {
         createdAt: Date;
         updatedAt: Date;
     } | undefined>;
+    renameMedia(type: string, id: string, newTitle: string): Promise<{
+        id: string;
+        title: string;
+        url: string;
+        duration: number;
+        folder: string | null;
+        isFavorite: boolean;
+        isDeleted: boolean;
+        createdAt: Date;
+        updatedAt: Date;
+        videoId: string;
+        thumbnailUrl: string | null;
+        startTime: number;
+        score: number | null;
+        reason: string | null;
+        socialCaption: string | null;
+        hashtags: string | null;
+        wpm: number | null;
+        pacing: string | null;
+        brollKeyword: string | null;
+        vibe: string | null;
+        hookStrength: string | null;
+        retentionRisk: string | null;
+        targetDemographic: string | null;
+        bgmSuggestion: string | null;
+        alternativeTitle: string | null;
+        brandSafety: string | null;
+        ctaOverlay: string | null;
+        aspectRatio: string;
+        platform: string;
+    } | {
+        id: string;
+        userId: string;
+        workspaceId: string;
+        status: import("@audira/database").$Enums.ProjectStatus;
+        createdAt: Date;
+        updatedAt: Date;
+        name: string;
+    } | {
+        progress: number;
+        id: string;
+        userId: string;
+        workspaceId: string;
+        title: string;
+        url: string;
+        duration: number;
+        status: import("@audira/database").$Enums.VideoStatus;
+        statusMessage: string | null;
+        tags: string[];
+        folder: string | null;
+        isFavorite: boolean;
+        isDeleted: boolean;
+        createdAt: Date;
+        updatedAt: Date;
+    } | undefined>;
+    mergeClips(clipIds: string[], userId: string, workspaceId: string): Promise<{
+        id: string;
+        userId: string;
+        workspaceId: string;
+        status: import("@audira/database").$Enums.ProjectStatus;
+        createdAt: Date;
+        updatedAt: Date;
+        name: string;
+    }>;
     createVideoRecord(data: {
         title: string;
         url: string;
@@ -424,23 +490,7 @@ export declare class VideoService {
         createdAt: Date;
         updatedAt: Date;
     }) | null>;
-    importFromUrl(url: string, userId: string, workspaceId: string, requestedAspects?: string[], options?: any): Promise<{
-        progress: number;
-        id: string;
-        userId: string;
-        workspaceId: string;
-        title: string;
-        url: string;
-        duration: number;
-        status: import("@audira/database").$Enums.VideoStatus;
-        statusMessage: string | null;
-        tags: string[];
-        folder: string | null;
-        isFavorite: boolean;
-        isDeleted: boolean;
-        createdAt: Date;
-        updatedAt: Date;
-    }>;
+    importFromUrl(url: string, userId: string, workspaceId: string, requestedAspects?: string[], options?: any): Promise<any>;
     updateProgress(id: string, progress: number, statusMessage: string, status?: 'PENDING' | 'PROCESSING' | 'READY' | 'FAILED'): Promise<void>;
     processVideo(videoId: string, requestedAspects?: string[], options?: any): Promise<void>;
     exportClip(clipId: string, subtitleConfig: any, reframingMode: string, enhanceSpeech?: boolean, brollSegments?: {
@@ -486,5 +536,30 @@ export declare class VideoService {
         success: boolean;
         url: string;
         brollPath: string;
+    }>;
+    transcribeClip(clipId: string): Promise<{
+        success: boolean;
+        segments: any;
+        source: string;
+    }>;
+    saveSubtitles(clipId: string, content: any): Promise<{
+        id: string;
+        createdAt: Date;
+        updatedAt: Date;
+        videoId: string | null;
+        clipId: string | null;
+        language: string;
+        content: import("@prisma/client/runtime/library").JsonValue;
+    }>;
+    getSubtitles(clipId: string): Promise<{
+        success: boolean;
+        segments: import("@prisma/client/runtime/library").JsonValue;
+        source: string;
+        message?: undefined;
+    } | {
+        success: boolean;
+        segments: never[];
+        message: string;
+        source?: undefined;
     }>;
 }

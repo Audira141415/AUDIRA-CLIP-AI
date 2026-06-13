@@ -2,6 +2,7 @@
 
 import DashboardLayout from "@/components/layout/DashboardLayout";
 import { Check, ChevronRight, Lock, Video, Play, Crop, Maximize, MousePointer2, Focus, Smartphone, MonitorPlay, HelpCircle, ArrowRight } from "lucide-react";
+import PageHero from "@/components/ui/PageHero";
 
 export default function ReframePage() {
   const steps = [
@@ -42,14 +43,13 @@ export default function ReframePage() {
         {/* Main Content Area (Left) */}
         <div className="flex-1 flex flex-col p-8 overflow-y-auto h-[calc(100vh-80px)] z-10 relative">
           
-          {/* Header */}
-          <div className="mb-6">
-            <h1 className="text-4xl font-black uppercase flex items-center gap-3 mb-2">
-              AI Reframing
-              <span className="bg-[#FFEDF4] text-black text-sm px-2 py-0.5 border-2 border-black shadow-[2px_2px_0px_0px_rgba(0,0,0,1)]">BETA</span>
-            </h1>
-            <p className="font-bold text-gray-700">Automatically reframe your video for any aspect ratio and platform.</p>
-          </div>
+          <PageHero
+            title="AI Reframing"
+            description="Automatically reframe your video for any aspect ratio and platform."
+            badge="BETA"
+            imageSrc="/images/hero_reframe.png"
+            imageAlt="Reframe Hero"
+          />
 
           {/* Stepper */}
           <div className="flex items-center gap-6 mb-8">

@@ -8,4 +8,5 @@ export declare class OllamaService {
     private getFallbackClips;
     mapVideoChapters(transcript: TranscriptSegment[], duration: number): Promise<any[]>;
     analyzeTranscriptForClips(transcript: TranscriptSegment[], intent: string, duration: number, chapters?: any[]): Promise<any[]>;
+    proofreadTranscript(transcript: TranscriptSegment[]): Promise<TranscriptSegment[]>;
 }

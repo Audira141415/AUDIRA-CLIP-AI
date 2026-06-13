@@ -3,14 +3,86 @@
 import DashboardLayout from "@/components/layout/DashboardLayout";
 import { Upload, MoreHorizontal, Wand2, Search, Plus, Play, Trash2, Copy, AlignLeft, AlignCenter, AlignRight, Maximize, ClosedCaption, Settings, ChevronDown, ChevronRight, Eye, Volume2, Type, SkipBack, SkipForward, Music } from "lucide-react";
 
-export default function SubtitleStudioPage() {
-  const subtitles = [
+import { Suspense, useEffect, useState, useRef } from "react";
+import { useSearchParams } from "next/navigation";
+import { useVideoStore } from "@/store/useVideoStore";
+import PageHero from "@/components/ui/PageHero";
+
+function SubtitleStudioContent() {
+  const [subtitles, setSubtitles] = useState([
     { id: 1, start: "00:00:01,200", end: "00:00:04,000", text: "Welcome to Audra Clip,\nyour AI-powered video editing platform.", active: true },
     { id: 2, start: "00:00:04,200", end: "00:00:07,000", text: "Edit faster, smarter,\nand create amazing content.", active: false },
     { id: 3, start: "00:00:07,200", end: "00:00:10,000", text: "From auto reframing to smart captions,\nwe've got you covered.", active: false },
     { id: 4, start: "00:00:10,200", end: "00:00:13,000", text: "Let's build something\nextraordinary together.", active: false },
     { id: 5, start: "00:00:13,200", end: "00:00:16,000", text: "Get started now\nand bring your ideas to life.", active: false }
-  ];
+  ]);
+  const searchParams = useSearchParams();
+  const videoId = searchParams.get('videoId');
+  const { currentVideo, fetchVideoDetails, exportClip } = useVideoStore();
+  const [isExporting, setIsExporting] = useState(false);
+  const [isGenerating, setIsGenerating] = useState(false);
+  const fileInputRef = useRef<HTMLInputElement>(null);
+
+  const handleAutoSubtitleUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (!file) return;
+
+    setIsGenerating(true);
+    const formData = new FormData();
+    formData.append('audio', file);
+    if (videoId) formData.append('videoId', videoId);
+
+    try {
+      const res = await fetch('http://localhost:3004/subtitles/generate', {
+        method: 'POST',
+        body: formData,
+      });
+      const data = await res.json();
+      if (data.status === 'success') {
+        alert('Subtitles generated successfully! (VTT saved to DB)');
+        // In a real app we'd parse data.data.vtt to update the subtitles array
+        // For demonstration, we'll just add the raw response as one block
+        setSubtitles(prev => [...prev, { id: Date.now(), start: "00:00:00", end: "00:00:05", text: data.data.vtt, active: false }]);
+      } else {
+        alert('Failed to generate subtitles.');
+      }
+    } catch (err) {
+      console.error(err);
+      alert('Error connecting to subtitle service.');
+    } finally {
+      setIsGenerating(false);
+    }
+  };
+
+  // Subtitle configs
+  const [fontFamily, setFontFamily] = useState('Inter');
+  const [fontSize, setFontSize] = useState(48);
+  const [color, setColor] = useState('#FFFFFF');
+  const [bgOpacity, setBgOpacity] = useState(60);
+
+  useEffect(() => {
+    if (videoId) {
+      fetchVideoDetails(videoId);
+    }
+  }, [videoId, fetchVideoDetails]);
+
+  const handleApplyAndRender = async () => {
+    if (!videoId) return;
+    setIsExporting(true);
+    try {
+      await exportClip(videoId, {
+        fontFamily,
+        fontSize,
+        color,
+        bgOpacity
+      }, 'center');
+      alert('Subtitle styles applied and export started!');
+    } catch (e) {
+      alert('Failed to start export');
+    } finally {
+      setIsExporting(false);
+    }
+  };
 
   return (
     <DashboardLayout>
@@ -19,27 +91,28 @@ export default function SubtitleStudioPage() {
         {/* Background Dot Pattern */}
         <div className="absolute inset-0 z-0 opacity-[0.05] pointer-events-none" style={{ backgroundImage: 'radial-gradient(#000 2px, transparent 2px)', backgroundSize: '32px 32px' }}></div>
 
-        {/* Header Section */}
-        <div className="px-8 pt-8 pb-4 z-10 flex justify-between items-start border-b-4 border-black bg-[#FAFAFA]">
-          <div>
-            <div className="flex items-center gap-3 mb-2">
-              <h1 className="text-4xl font-black uppercase">Subtitle Studio</h1>
-              <span className="bg-[#D8B4E2] border-2 border-black px-2 py-0.5 text-xs font-black uppercase shadow-[2px_2px_0px_0px_rgba(0,0,0,1)]">Beta</span>
-            </div>
-            <p className="font-bold text-gray-700">Create, edit, and style subtitles with ease.</p>
-          </div>
-          
-          <div className="flex gap-4">
-            <button className="flex items-center gap-2 bg-white border-4 border-black px-4 py-2 font-black uppercase text-sm shadow-[4px_4px_0px_0px_rgba(0,0,0,1)] hover:translate-y-[2px] hover:translate-x-[2px] hover:shadow-[2px_2px_0px_0px_rgba(0,0,0,1)] transition-all">
-              <Upload className="w-4 h-4" strokeWidth={3} /> Import Subtitle
-            </button>
-            <button className="flex items-center justify-center bg-white border-4 border-black w-12 shadow-[4px_4px_0px_0px_rgba(0,0,0,1)] hover:translate-y-[2px] hover:translate-x-[2px] hover:shadow-[2px_2px_0px_0px_rgba(0,0,0,1)] transition-all">
-              <MoreHorizontal className="w-5 h-5" strokeWidth={3} />
-            </button>
-            <button className="flex items-center gap-2 bg-[#00E5FF] border-4 border-black px-4 py-2 font-black uppercase text-sm shadow-[4px_4px_0px_0px_rgba(0,0,0,1)] hover:translate-y-[2px] hover:translate-x-[2px] hover:shadow-[2px_2px_0px_0px_rgba(0,0,0,1)] transition-all">
-              <Wand2 className="w-4 h-4" strokeWidth={3} /> Auto Subtitle
-            </button>
-          </div>
+        <div className="px-8 pt-8 z-10 bg-[#FAFAFA]">
+          <PageHero
+            title="Subtitle Studio"
+            description="Create, edit, and style subtitles with ease."
+            badge="BETA"
+            imageSrc="/images/hero_subtitles.png"
+            imageAlt="Subtitles Hero"
+            rightContent={
+              <>
+                <button className="flex items-center gap-2 bg-white border-4 border-black px-4 py-2 font-black uppercase text-sm shadow-[4px_4px_0px_0px_rgba(0,0,0,1)] hover:translate-y-[2px] hover:translate-x-[2px] hover:shadow-[2px_2px_0px_0px_rgba(0,0,0,1)] transition-all">
+                  <Upload className="w-4 h-4" strokeWidth={3} /> Import Subtitle
+                </button>
+                <button className="flex items-center justify-center bg-white border-4 border-black w-12 shadow-[4px_4px_0px_0px_rgba(0,0,0,1)] hover:translate-y-[2px] hover:translate-x-[2px] hover:shadow-[2px_2px_0px_0px_rgba(0,0,0,1)] transition-all">
+                  <MoreHorizontal className="w-5 h-5" strokeWidth={3} />
+                </button>
+                <button onClick={() => fileInputRef.current?.click()} disabled={isGenerating} className="flex items-center gap-2 bg-[#00E5FF] border-4 border-black px-4 py-2 font-black uppercase text-sm shadow-[4px_4px_0px_0px_rgba(0,0,0,1)] hover:translate-y-[2px] hover:translate-x-[2px] hover:shadow-[2px_2px_0px_0px_rgba(0,0,0,1)] transition-all disabled:opacity-50">
+                  <Wand2 className="w-4 h-4" strokeWidth={3} /> {isGenerating ? 'Generating...' : 'Auto Subtitle'}
+                </button>
+                <input type="file" accept="audio/*,video/*" className="hidden" ref={fileInputRef} onChange={handleAutoSubtitleUpload} />
+              </>
+            }
+          />
         </div>
 
         {/* Global Tabs */}
@@ -114,7 +187,11 @@ export default function SubtitleStudioPage() {
           <div className="flex-1 bg-gray-200 flex flex-col border-r-4 border-black relative">
             {/* Fake Video Box */}
             <div className="flex-1 bg-gray-900 m-6 border-4 border-black shadow-[8px_8px_0px_0px_rgba(0,0,0,1)] relative overflow-hidden flex items-center justify-center">
-              <img src="/feature_clipping.png" className="absolute inset-0 w-full h-full object-cover opacity-60 mix-blend-luminosity" />
+              {currentVideo ? (
+                <video src={currentVideo.url} className="absolute inset-0 w-full h-full object-contain mix-blend-luminosity opacity-60" autoPlay loop muted />
+              ) : (
+                <img src="/feature_clipping.png" className="absolute inset-0 w-full h-full object-cover opacity-60 mix-blend-luminosity" />
+              )}
               
               {/* Subtitle Overlay */}
               <div className="relative z-10 mt-auto mb-16 border-2 border-white border-dashed p-4 cursor-move group">
@@ -138,7 +215,7 @@ export default function SubtitleStudioPage() {
                 <button className="hover:text-[#F5A623] transition-colors"><SkipBack className="w-5 h-5 fill-current" strokeWidth={2}/></button>
                 <button className="hover:text-[#00E5FF] transition-colors"><Play className="w-6 h-6 fill-current" strokeWidth={2}/></button>
                 <button className="hover:text-[#F5A623] transition-colors"><SkipForward className="w-5 h-5 fill-current" strokeWidth={2}/></button>
-                <div className="font-black text-sm ml-4 border-l-4 border-black pl-4 py-1">00:00:01,200 / 00:01:23,400</div>
+                <div className="font-black text-sm ml-4 border-l-4 border-black pl-4 py-1">00:00:00 / {currentVideo?.duration ? Math.round(currentVideo.duration) + 's' : '00:00'}</div>
               </div>
               
               <div className="flex items-center gap-6">
@@ -164,10 +241,10 @@ export default function SubtitleStudioPage() {
               <div>
                 <label className="block text-xs font-black uppercase mb-2">Font Family</label>
                 <div className="relative">
-                  <select className="w-full bg-[#FAFAFA] border-4 border-black px-3 py-2 font-bold outline-none appearance-none cursor-pointer">
-                    <option>Inter</option>
-                    <option>Roboto</option>
-                    <option>Outfit</option>
+                  <select value={fontFamily} onChange={(e) => setFontFamily(e.target.value)} className="w-full bg-[#FAFAFA] border-4 border-black px-3 py-2 font-bold outline-none appearance-none cursor-pointer">
+                    <option value="Inter">Inter</option>
+                    <option value="Roboto">Roboto</option>
+                    <option value="Outfit">Outfit</option>
                   </select>
                   <ChevronDown className="absolute right-3 top-1/2 -translate-y-1/2 w-4 h-4 pointer-events-none" strokeWidth={3} />
                 </div>
@@ -176,9 +253,9 @@ export default function SubtitleStudioPage() {
               <div className="flex items-center justify-between">
                 <label className="text-xs font-black uppercase">Font Size</label>
                 <div className="flex items-center">
-                  <button className="w-8 h-8 border-4 border-r-0 border-black flex items-center justify-center font-black bg-[#FAFAFA] hover:bg-gray-200">-</button>
-                  <div className="w-12 h-8 border-4 border-black flex items-center justify-center font-black">48</div>
-                  <button className="w-8 h-8 border-4 border-l-0 border-black flex items-center justify-center font-black bg-[#FAFAFA] hover:bg-gray-200">+</button>
+                  <button onClick={() => setFontSize(f => Math.max(12, f - 2))} className="w-8 h-8 border-4 border-r-0 border-black flex items-center justify-center font-black bg-[#FAFAFA] hover:bg-gray-200">-</button>
+                  <div className="w-12 h-8 border-4 border-black flex items-center justify-center font-black">{fontSize}</div>
+                  <button onClick={() => setFontSize(f => Math.min(120, f + 2))} className="w-8 h-8 border-4 border-l-0 border-black flex items-center justify-center font-black bg-[#FAFAFA] hover:bg-gray-200">+</button>
                 </div>
               </div>
 
@@ -202,11 +279,12 @@ export default function SubtitleStudioPage() {
               <div>
                 <div className="flex justify-between items-center mb-2">
                   <label className="text-xs font-black uppercase">Bg Opacity</label>
-                  <span className="text-xs font-black">60%</span>
+                  <span className="text-xs font-black">{bgOpacity}%</span>
                 </div>
                 <div className="w-full h-4 bg-gray-200 border-2 border-black relative">
-                  <div className="absolute top-0 left-0 h-full bg-[#F5A623] border-r-2 border-black" style={{width: '60%'}}></div>
-                  <div className="absolute top-1/2 left-[60%] w-5 h-5 bg-black rounded-full -translate-y-1/2 -translate-x-1/2 border-2 border-white cursor-pointer"></div>
+                  <div className="absolute top-0 left-0 h-full bg-[#F5A623] border-r-2 border-black" style={{width: `${bgOpacity}%`}}></div>
+                  <input type="range" min="0" max="100" value={bgOpacity} onChange={(e) => setBgOpacity(Number(e.target.value))} className="absolute inset-0 w-full h-full opacity-0 cursor-pointer z-10" />
+                  <div className="absolute top-1/2 w-5 h-5 bg-black rounded-full -translate-y-1/2 -translate-x-1/2 border-2 border-white pointer-events-none" style={{left: `${bgOpacity}%`}}></div>
                 </div>
               </div>
 
@@ -229,8 +307,8 @@ export default function SubtitleStudioPage() {
               </div>
 
               <div className="pt-4 border-t-4 border-black">
-                <button className="w-full bg-[#00E5FF] border-4 border-black py-3 font-black uppercase text-sm shadow-[4px_4px_0px_0px_rgba(0,0,0,1)] hover:shadow-[2px_2px_0px_0px_rgba(0,0,0,1)] hover:translate-y-[2px] hover:translate-x-[2px] transition-all">
-                  Apply to All
+                <button onClick={handleApplyAndRender} disabled={isExporting} className="w-full bg-[#00E5FF] border-4 border-black py-3 font-black uppercase text-sm shadow-[4px_4px_0px_0px_rgba(0,0,0,1)] hover:shadow-[2px_2px_0px_0px_rgba(0,0,0,1)] hover:translate-y-[2px] hover:translate-x-[2px] transition-all disabled:opacity-50">
+                  {isExporting ? 'Applying...' : 'Apply & Render'}
                 </button>
               </div>
 
@@ -333,5 +411,13 @@ export default function SubtitleStudioPage() {
 
       </div>
     </DashboardLayout>
+  );
+}
+
+export default function SubtitleStudioPage() {
+  return (
+    <Suspense fallback={<div>Loading subtitles...</div>}>
+      <SubtitleStudioContent />
+    </Suspense>
   );
 }

@@ -1,9 +1,8 @@
-import { Controller, Post, Body, Headers, RawBodyRequest, Req } from '@nestjs/common';
+import { Controller, Post, Body, Headers, Req } from '@nestjs/common';
+import type { RawBodyRequest } from '@nestjs/common';
 import Stripe from 'stripe';
 
-const stripe = new Stripe(process.env.STRIPE_SECRET_KEY || 'sk_test_mock', {
-  apiVersion: '2025-01-27.acacia',
-});
+const stripe = new Stripe(process.env.STRIPE_SECRET_KEY || 'sk_test_mock');
 
 @Controller('billing')
 export class AppController {

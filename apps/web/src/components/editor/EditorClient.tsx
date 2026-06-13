@@ -2,6 +2,7 @@
 
 import { useState, useRef, useEffect } from "react";
 import Link from "next/link";
+import { api } from "@/lib/api";
 
 interface EditorClientProps {
   project: any;
@@ -34,7 +35,7 @@ export default function EditorClient({ project, clips }: EditorClientProps) {
   const formattedClips = clips.map((clip) => {
     let url = clip.url;
     if (url.startsWith('local://')) {
-      url = url.replace('local://', 'http://localhost:3001/');
+      url = url.replace('local://', 'http://localhost:3345/');
     }
     return { ...clip, url };
   });
@@ -140,12 +141,10 @@ export default function EditorClient({ project, clips }: EditorClientProps) {
     if (!activeClip) return;
     setIsGeneratingBRoll(true);
     try {
-      const response = await fetch(`http://localhost:3001/video/clip/${activeClip.id}/broll`, {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ keyword: activeClip.title || 'viral broll' })
+      const response = await api.post(`/video/clip/${activeClip.id}/broll`, {
+        keyword: activeClip.title || 'viral broll'
       });
-      const data = await response.json();
+      const data = response.data;
       if (data.success) {
         alert('B-Roll generated successfully! URL: ' + data.url);
         // In a real app we'd update the clip's broll segments in the state or timeline
@@ -195,16 +194,12 @@ export default function EditorClient({ project, clips }: EditorClientProps) {
     if (!activeClip) return;
     setIsExporting(true);
     try {
-      const res = await fetch(`http://localhost:3001/video/clip/${activeClip.id}/export`, {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({
-          subtitleConfig: { font: subFont, color: subColor, style: subtitleStyle, location: subLocation, aspectRatio: outputRatio },
-          reframingMode: reframingMode
-        })
+      const res = await api.post(`/video/clip/${activeClip.id}/export`, {
+        subtitleConfig: { font: subFont, color: subColor, style: subtitleStyle, location: subLocation, aspectRatio: outputRatio },
+        reframingMode: reframingMode
       });
-      const data = await res.json();
-      if (res.ok && data.url) {
+      const data = res.data;
+      if ((res.status === 200 || res.status === 201) && data.url) {
         // Mock update the active clip URL
         activeClip.url = data.url;
         if (videoRef.current) {

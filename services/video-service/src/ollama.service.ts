@@ -638,4 +638,75 @@ Do not include markdown. Return ONLY the raw JSON object.`;
     this.logger.log(`Successfully passed Layer 5: Generated ${topClips.length} perfectly aligned clips!`);
     return topClips;
   }
+
+  // ----------------------------------------------------
+  // LAYER 16: THE PROOFREADER (LLM Subtitle Correction)
+  // ----------------------------------------------------
+  async proofreadTranscript(transcript: TranscriptSegment[]): Promise<TranscriptSegment[]> {
+    this.logger.log(`[LAYER 16] The Proofreader (Correcting Speech-to-Text typos)...`);
+    const CHUNK_SIZE = 30; // 30 segments is roughly 1-2 minutes of speech
+    let correctedTranscript: TranscriptSegment[] = [];
+
+    for (let i = 0; i < transcript.length; i += CHUNK_SIZE) {
+      const chunk = transcript.slice(i, i + CHUNK_SIZE);
+      const chunkJson = JSON.stringify(chunk, null, 2);
+      
+      this.logger.log(`Proofreading chunk ${Math.floor(i/CHUNK_SIZE) + 1}/${Math.ceil(transcript.length/CHUNK_SIZE)}...`);
+
+      const prompt = `Anda adalah Editor Bahasa Indonesia tingkat lanjut. 
+Berikut adalah hasil transkripsi audio (JSON) yang masih kotor dan banyak salah eja (typo).
+Tugas Anda adalah memperbaiki tata bahasa, kapitalisasi, dan ejaan teks tersebut menjadi Bahasa Indonesia baku/gaul yang tepat secara konteks, TANPA mengubah nilai "start" dan "end".
+
+Aturan:
+1. Perbaiki typo (contoh: "halo gays" -> "Halo guys").
+2. Jangan hapus atau tambah segmen array. Jumlah item harus sama.
+3. KEMBALIKAN HANYA JSON ARRAY VALID. TANPA markdown, TANPA penjelasan.
+
+Data Input:
+${chunkJson}`;
+
+      try {
+        const response = await this.fetchWithRetry(this.OLLAMA_URL, {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({
+            model: this.MODEL,
+            prompt: prompt,
+            stream: false,
+            format: 'json'
+          }),
+        }, 3, 1200000);
+
+        const data = await response.json();
+        let responseText = data.response;
+        
+        if (responseText.includes('</think>')) {
+          responseText = responseText.split('</think>')[1].trim();
+        }
+
+        const parsedChunk = JSON.parse(responseText);
+        
+        // Safety check: ensure LLM didn't mess up the array size wildly
+        if (Array.isArray(parsedChunk) && Math.abs(parsedChunk.length - chunk.length) < 5) {
+          correctedTranscript.push(...parsedChunk);
+        } else {
+          this.logger.warn(`Proofreader returned invalid length (Expected ${chunk.length}, got ${parsedChunk?.length}). Falling back to original chunk.`);
+          correctedTranscript.push(...chunk);
+        }
+      } catch (error: any) {
+        this.logger.error(`Proofreader failed on chunk ${Math.floor(i/CHUNK_SIZE) + 1}: ${error.message}. Using original chunk.`);
+        correctedTranscript.push(...chunk);
+      }
+    }
+
+    this.logger.log(`[LAYER 16] Proofreading complete! Processed ${correctedTranscript.length} segments.`);
+    
+    // In case LLM failed entirely or lost some segments, we do a basic length check
+    if (correctedTranscript.length > transcript.length * 0.8) {
+      return correctedTranscript;
+    } else {
+      this.logger.warn(`Proofreader lost too many segments. Falling back to original transcript.`);
+      return transcript;
+    }
+  }
 }

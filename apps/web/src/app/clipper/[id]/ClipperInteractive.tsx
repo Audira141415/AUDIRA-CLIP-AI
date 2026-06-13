@@ -3,6 +3,7 @@
 import { useState, useEffect } from "react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
+import { api } from "@/lib/api";
 
 const USER_ID = 'afc0b322-bb98-47b0-9879-e4ffc8361a80';
 const WORKSPACE_ID = 'f7e53531-8f05-418a-9869-931cf994183a';
@@ -45,7 +46,7 @@ export default function ClipperInteractive({ videoData, initialVideoUrl }: { vid
 
   const handleClipClick = (clip: any) => {
     const clipUrl = clip.url.startsWith("local://")
-      ? clip.url.replace("local://", "http://localhost:3001/")
+      ? clip.url.replace("local://", "http://localhost:3345/")
       : clip.url;
     setActiveVideoUrl(clipUrl);
     setActiveClipId(clip.id);
@@ -92,19 +93,15 @@ export default function ClipperInteractive({ videoData, initialVideoUrl }: { vid
     setIsCreating(true);
     setCreateError("");
     try {
-      const res = await fetch("http://localhost:3001/project/create", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({
-          name: projectName.trim(),
-          userId: USER_ID,
-          workspaceId: WORKSPACE_ID,
-          clipIds: Array.from(selectedClipIds),
-          subtitleStyle: { color: subColor, font: subFont }
-        }),
+      const res = await api.post("/project/create", {
+        name: projectName.trim(),
+        userId: USER_ID,
+        workspaceId: WORKSPACE_ID,
+        clipIds: Array.from(selectedClipIds),
+        subtitleStyle: { color: subColor, font: subFont }
       });
-      const data = await res.json();
-      if (res.ok && data.project?.id) {
+      const data = res.data;
+      if ((res.status === 200 || res.status === 201) && data.project?.id) {
         router.push(`/editor?projectId=${data.project.id}`);
       } else {
         setCreateError(data.message || "Gagal membuat project.");
@@ -123,15 +120,11 @@ export default function ClipperInteractive({ videoData, initialVideoUrl }: { vid
       }
       setIsCreatingCustom(true);
       try {
-        const res = await fetch(`http://localhost:3001/video/${videoData.id}/clip/custom`, {
-          method: "POST",
-          headers: { "Content-Type": "application/json" },
-          body: JSON.stringify({
-            startTime: parseFloat(customStart),
-            duration: parseFloat(customDuration)
-          }),
+        const res = await api.post(`/video/${videoData.id}/clip/custom`, {
+          startTime: parseFloat(customStart),
+          duration: parseFloat(customDuration)
         });
-        if (res.ok) {
+        if (res.status === 200 || res.status === 201) {
           setShowCustomModal(false);
           setCustomStart("");
           setCustomDuration("15");
@@ -350,7 +343,7 @@ export default function ClipperInteractive({ videoData, initialVideoUrl }: { vid
               .filter((clip: any) => aspectFilter === "All" || clip.platform === aspectFilter)
               .map((clip: any, i: number) => {
               const thumbUrl = clip.thumbnailUrl?.startsWith("local://")
-                ? clip.thumbnailUrl.replace("local://", "http://localhost:3001/")
+                ? clip.thumbnailUrl.replace("local://", "http://localhost:3345/")
                 : clip.thumbnailUrl;
 
               const isVertical = clip.aspectRatio === "9:16";
@@ -421,6 +414,15 @@ export default function ClipperInteractive({ videoData, initialVideoUrl }: { vid
                         {isSelected ? '✓ Selected' : '+ Select'}
                       </button>
                     </div>
+                    <div className="mt-3">
+                      <Link 
+                        href={`/editor/${clip.id}`}
+                        onClick={(e) => e.stopPropagation()}
+                        className="w-full text-center block text-[11px] font-black uppercase px-2.5 py-1.5 border-2 border-black bg-white text-black shadow-[2px_2px_0px_0px_rgba(0,0,0,1)] hover:bg-[#FFD700] hover:translate-y-[1px] hover:translate-x-[1px] hover:shadow-none transition-all"
+                      >
+                        ✏️ Edit Subtitle
+                      </Link>
+                    </div>
                   </div>
                 </div>
               );
@@ -489,7 +491,7 @@ export default function ClipperInteractive({ videoData, initialVideoUrl }: { vid
                         const clip = videoData.clips.find((c: any) => c.id === id);
                         if (!clip) return null;
                         const thumbUrl = clip.thumbnailUrl?.startsWith("local://")
-                          ? clip.thumbnailUrl.replace("local://", "http://localhost:3001/")
+                          ? clip.thumbnailUrl.replace("local://", "http://localhost:3345/")
                           : clip.thumbnailUrl;
                         
                         return (

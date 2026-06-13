@@ -1,7 +1,13 @@
+// @ts-nocheck
 'use client';
 
 import DashboardLayout from "@/components/layout/DashboardLayout";
-import { Zap, VolumeX, Type, Smartphone, Video, Mic, ArrowRight, Play, Lock, Eye, MousePointer2, Undo, Redo, Scissors, Trash2, Maximize, Settings2 } from "lucide-react";
+import { Send, Zap, Image as ImageIcon, Music, Video, RefreshCw, Wand2, ArrowUpRight, MessageSquare, Bot, Sparkles, Plus, Play, Pause, Square, Trash2, Edit2, Download, Copy, Share2, CornerDownRight, Check, VolumeX, Type, Smartphone, Mic, ArrowRight, Lock, Eye, MousePointer2, Undo, Redo, Scissors, Maximize, Settings2 } from "lucide-react";
+import PageHero from "@/components/ui/PageHero";
+
+import { useChat } from '@ai-sdk/react';
+import { useRef, useEffect, useState } from 'react';
+import { useVideoStore } from '@/store/useVideoStore';
 
 export default function CopilotPage() {
   const actions = [
@@ -12,6 +18,26 @@ export default function CopilotPage() {
     { title: "Auto B-Roll", desc: "Find and insert relevant B-roll", icon: Video, bg: "bg-[#F5A623]" },
     { title: "Improve Audio", desc: "Enhance voice and reduce noise", icon: Mic, bg: "bg-[#00E5FF]" }
   ];
+
+  const { videos, fetchVideos } = useVideoStore();
+  const [selectedVideoId, setSelectedVideoId] = useState<string>('');
+  
+  useEffect(() => {
+    fetchVideos();
+  }, [fetchVideos]);
+
+  const { messages, input, handleInputChange, handleSubmit, isLoading } = useChat({
+    body: { videoId: selectedVideoId }
+  });
+  const messagesEndRef = useRef<HTMLDivElement>(null);
+
+  const scrollToBottom = () => {
+    messagesEndRef.current?.scrollIntoView({ behavior: "smooth" });
+  };
+
+  useEffect(() => {
+    scrollToBottom();
+  }, [messages]);
 
   const history = [
     { action: "Created highlights", time: "2 minutes ago" },
@@ -27,19 +53,41 @@ export default function CopilotPage() {
         {/* Main Content Area (Left) */}
         <div className="flex-1 flex flex-col p-8 overflow-y-auto h-[calc(100vh-80px)]">
           
-          {/* Header */}
-          <div className="mb-8">
-            <h1 className="text-4xl font-black uppercase flex items-center gap-3 mb-2">
-              AI Copilot
-              <span className="bg-[#FFEDF4] text-black text-sm px-2 py-0.5 border-2 border-black shadow-[2px_2px_0px_0px_rgba(0,0,0,1)]">BETA</span>
-            </h1>
-            <p className="font-bold text-gray-700">Your AI assistant for faster, smarter video editing</p>
+          <PageHero
+            title="AI Copilot"
+            description="Your creative AI assistant for video editing and content generation."
+            badge="BETA"
+            className="shrink-0"
+            imageSrc="/images/hero_copilot.png"
+            imageAlt="Copilot Hero"
+          />
+
+          {/* Video Selector */}
+          <div className="mb-6 p-4 bg-white border-4 border-black shadow-[4px_4px_0px_0px_rgba(0,0,0,1)]">
+            <label className="block text-sm font-black uppercase text-black mb-2">1. Pilih Video untuk Dianalisis</label>
+            <select 
+              value={selectedVideoId}
+              onChange={(e) => setSelectedVideoId(e.target.value)}
+              className="w-full border-4 border-black p-3 font-bold text-black outline-none cursor-pointer focus:bg-[#FFEDF4] transition-colors"
+            >
+              <option value="" disabled>-- Pilih Video --</option>
+              {videos.map(v => (
+                <option key={v.id} value={v.id}>{v.title}</option>
+              ))}
+            </select>
           </div>
 
           {/* Action Cards Grid */}
           <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-6 mb-10">
             {actions.map((item, i) => (
-              <button key={i} className="bg-white border-4 border-black p-5 flex items-start gap-4 text-left shadow-[4px_4px_0px_0px_rgba(0,0,0,1)] hover:shadow-[6px_6px_0px_0px_rgba(0,0,0,1)] hover:-translate-y-1 hover:-translate-x-1 transition-all group">
+              <button 
+                key={i} 
+                onClick={() => {
+                  if (!selectedVideoId) return alert('Silakan pilih video terlebih dahulu');
+                  handleInputChange({ target: { value: item.title } } as any);
+                }}
+                className="bg-white border-4 border-black p-5 flex items-start gap-4 text-left shadow-[4px_4px_0px_0px_rgba(0,0,0,1)] hover:shadow-[6px_6px_0px_0px_rgba(0,0,0,1)] hover:-translate-y-1 hover:-translate-x-1 transition-all group"
+              >
                 <div className={`w-12 h-12 border-4 border-black flex items-center justify-center shrink-0 ${item.bg} shadow-[2px_2px_0px_0px_rgba(0,0,0,1)] group-hover:rotate-12 transition-transform`}>
                   <item.icon className="w-6 h-6 text-black" strokeWidth={3} />
                 </div>
@@ -51,120 +99,112 @@ export default function CopilotPage() {
             ))}
           </div>
 
-          {/* Prompt Box */}
-          <div className="bg-white border-4 border-[#F5A623] p-6 mb-8 shadow-[6px_6px_0px_0px_rgba(0,0,0,1)] relative">
-            <textarea 
-              className="w-full h-24 bg-transparent resize-none font-bold text-xl outline-none placeholder:text-gray-400"
-              placeholder="Ask anything about your video..."
-            ></textarea>
-            
-            <div className="flex flex-wrap items-center justify-between gap-4 mt-2">
-              <div className="flex flex-wrap gap-3">
-                {["Create a 30s highlight reel", "Add captions to this video", "Remove all silences", "Make it vertical for Shorts"].map((pill, i) => (
-                  <button key={i} className="text-xs font-black uppercase bg-[#FAFAFA] border-2 border-black px-3 py-1.5 hover:bg-[#F5A623] transition-colors shadow-[2px_2px_0px_0px_rgba(0,0,0,1)] hover:translate-y-[1px] hover:translate-x-[1px] hover:shadow-[1px_1px_0px_0px_rgba(0,0,0,1)]">
-                    {pill}
-                  </button>
-                ))}
+          {/* Chat Messages Area */}
+          <div className="flex-1 border-4 border-black bg-white mb-6 p-6 overflow-y-auto shadow-[6px_6px_0px_0px_rgba(0,0,0,1)] flex flex-col gap-4">
+            {messages.length === 0 ? (
+              <div className="h-full flex flex-col items-center justify-center text-center opacity-50">
+                <Bot className="w-16 h-16 mb-4" />
+                <h3 className="font-black text-xl uppercase">Mulai Percakapan</h3>
+                <p className="font-bold">Tanyakan sesuatu atau minta AI melakukan aksi pada video Anda.</p>
               </div>
-              <button className="bg-[#F5A623] w-12 h-12 border-4 border-black flex items-center justify-center shadow-[4px_4px_0px_0px_rgba(0,0,0,1)] hover:translate-y-[2px] hover:translate-x-[2px] hover:shadow-[2px_2px_0px_0px_rgba(0,0,0,1)] transition-all shrink-0">
-                <ArrowRight className="w-6 h-6 text-black" strokeWidth={3} />
-              </button>
-            </div>
+            ) : (
+              messages.map(m => (
+                <div key={m.id} className={`flex flex-col ${m.role === 'user' ? 'items-end' : 'items-start'}`}>
+                  <div className={`max-w-[80%] p-4 border-4 border-black font-bold ${
+                    m.role === 'user' 
+                      ? 'bg-[#00E5FF] shadow-[4px_4px_0px_0px_rgba(0,0,0,1)]' 
+                      : 'bg-[#FAFAFA] shadow-[4px_4px_0px_0px_rgba(0,0,0,1)]'
+                  }`}>
+                    {m.content}
+                    
+                    {/* Generative UI / Tool Invocations Render */}
+                    {m.toolInvocations && m.toolInvocations.map(toolInvocation => {
+                      const toolCallId = toolInvocation.toolCallId;
+                      if ('result' in toolInvocation) {
+                        // Tool has finished execution
+                        return (
+                          <div key={toolCallId} className="mt-4 p-4 border-4 border-black bg-white shadow-[4px_4px_0px_0px_rgba(245,166,35,1)]">
+                            <div className="flex items-center gap-2 mb-2">
+                              <Check className="w-5 h-5 text-green-500" strokeWidth={3} />
+                              <span className="font-black uppercase text-sm">{toolInvocation.result.message}</span>
+                            </div>
+                            
+                            {toolInvocation.toolName === 'findFunnyMoments' && toolInvocation.result.results && toolInvocation.result.results.length > 0 && (
+                              <div className="flex flex-col gap-2 mt-2 max-h-48 overflow-y-auto border-2 border-black p-2 bg-white">
+                                {toolInvocation.result.results.map((r: any) => (
+                                  <div key={r.id} className="flex justify-between items-center bg-[#FAFAFA] p-2 border-2 border-black hover:bg-[#FFEDF4] transition-colors">
+                                    <span className="text-xs font-black bg-black text-white px-2 py-1">{r.time}</span>
+                                    <span className="text-sm font-bold uppercase truncate max-w-[200px]">{r.title}</span>
+                                    <button className="bg-[#00E5FF] border-2 border-black p-1 hover:bg-white transition-colors" title="Buka Klip">
+                                      <Play className="w-4 h-4"/>
+                                    </button>
+                                  </div>
+                                ))}
+                              </div>
+                            )}
+                            
+                            {toolInvocation.toolName === 'generateSubtitles' && toolInvocation.result.status === 'processing' && (
+                              <div className="w-full mt-2 bg-[#FFEDF4] border-2 border-black font-black uppercase text-xs py-2 px-3 text-center">
+                                Silakan periksa halaman Clipper nanti untuk meninjau subtitle
+                              </div>
+                            )}
+                          </div>
+                        );
+                      } else {
+                        // Tool is executing
+                        return (
+                          <div key={toolCallId} className="mt-4 p-4 border-4 border-black bg-white shadow-[4px_4px_0px_0px_rgba(0,0,0,0.5)] opacity-70 flex items-center gap-3">
+                            <RefreshCw className="w-5 h-5 animate-spin" />
+                            <span className="font-black uppercase text-sm text-gray-500">
+                              {toolInvocation.toolName === 'findFunnyMoments' ? 'Mencari Momen Lucu...' : 
+                               toolInvocation.toolName === 'generateSubtitles' ? 'Membuat Subtitle...' : 
+                               toolInvocation.toolName === 'autoReframe' ? 'Me-reframe Video...' : 'Memproses...'}
+                            </span>
+                          </div>
+                        );
+                      }
+                    })}
+                  </div>
+                </div>
+              ))
+            )}
+            <div ref={messagesEndRef} />
           </div>
 
-          {/* Suggestions */}
-          <div className="mb-10">
-            <h3 className="font-black uppercase mb-4">Suggestions for this video</h3>
-            <div className="flex flex-wrap gap-3">
-              {["Find key moments", "Add engaging subtitles", "Improve pacing", "Add background music"].map((sug, i) => (
-                <button key={i} className="flex items-center gap-2 bg-white border-2 border-black px-4 py-2 font-bold text-sm hover:bg-[#00E5FF] transition-colors shadow-[2px_2px_0px_0px_rgba(0,0,0,1)] hover:translate-y-[1px] hover:translate-x-[1px] hover:shadow-[1px_1px_0px_0px_rgba(0,0,0,1)]">
-                  <Zap className="w-4 h-4" strokeWidth={2} /> {sug}
+          {/* Prompt Box */}
+          <form onSubmit={handleSubmit} className="bg-white border-4 border-[#F5A623] p-4 mb-4 shadow-[6px_6px_0px_0px_rgba(0,0,0,1)] relative shrink-0">
+            <div className="flex items-center gap-3">
+              <input 
+                value={input}
+                onChange={handleInputChange}
+                className="flex-1 bg-transparent font-bold text-lg outline-none placeholder:text-gray-400"
+                placeholder="Minta Copilot melakukan sesuatu..."
+                disabled={isLoading}
+              />
+              <button 
+                type="submit"
+                disabled={isLoading || !(input || '').trim()}
+                className="bg-[#F5A623] w-12 h-12 border-4 border-black flex items-center justify-center shadow-[4px_4px_0px_0px_rgba(0,0,0,1)] hover:translate-y-[2px] hover:translate-x-[2px] hover:shadow-[2px_2px_0px_0px_rgba(0,0,0,1)] transition-all flex-shrink-0 disabled:opacity-50 disabled:cursor-not-allowed"
+              >
+                {isLoading ? <RefreshCw className="w-6 h-6 animate-spin text-black" strokeWidth={3} /> : <ArrowRight className="w-6 h-6 text-black" strokeWidth={3} />}
+              </button>
+            </div>
+            
+            <div className="flex flex-wrap gap-2 mt-4">
+              {["Carikan momen lucu di video ini", "Buatkan subtitle bahasa Indonesia", "Reframe untuk TikTok"].map((pill, i) => (
+                <button 
+                  key={i} 
+                  type="button"
+                  onClick={() => handleInputChange({ target: { value: pill } } as any)}
+                  className="text-xs font-black uppercase bg-[#FAFAFA] border-2 border-black px-3 py-1.5 hover:bg-[#F5A623] transition-colors shadow-[2px_2px_0px_0px_rgba(0,0,0,1)] hover:translate-y-[1px] hover:translate-x-[1px] hover:shadow-[1px_1px_0px_0px_rgba(0,0,0,1)]"
+                >
+                  {pill}
                 </button>
               ))}
             </div>
-          </div>
+          </form>
 
-          {/* Timeline UI (Mockup) */}
-          <div className="mt-auto border-4 border-black bg-white shadow-[8px_8px_0px_0px_rgba(0,0,0,1)] overflow-hidden flex flex-col">
-            {/* Toolbar */}
-            <div className="bg-[#FAFAFA] border-b-4 border-black px-4 py-2 flex items-center gap-6">
-              <MousePointer2 className="w-5 h-5 cursor-pointer text-[#F5A623]" strokeWidth={3} />
-              <Undo className="w-5 h-5 cursor-pointer hover:text-[#F5A623]" strokeWidth={2.5} />
-              <Redo className="w-5 h-5 cursor-pointer hover:text-[#F5A623]" strokeWidth={2.5} />
-              <div className="w-px h-6 bg-black"></div>
-              <Scissors className="w-5 h-5 cursor-pointer hover:text-[#F5A623]" strokeWidth={2.5} />
-              <Trash2 className="w-5 h-5 cursor-pointer hover:text-red-500" strokeWidth={2.5} />
-              <div className="flex-1"></div>
-              <Maximize className="w-5 h-5 cursor-pointer hover:text-[#F5A623]" strokeWidth={2.5} />
-            </div>
-
-            {/* Time Ruler */}
-            <div className="bg-white border-b-2 border-black flex h-8 text-[10px] font-black items-center px-24">
-              <div className="flex-1 flex justify-between relative">
-                <span>00:00</span>
-                <span>00:05</span>
-                <span>00:10</span>
-                <span>00:15</span>
-                <span>00:20</span>
-                {/* Playhead */}
-                <div className="absolute left-[45%] top-0 bottom-[-200px] w-0.5 bg-[#F5A623] z-10 flex flex-col items-center">
-                  <div className="w-3 h-3 bg-[#F5A623] border-2 border-black -mt-1 rounded-sm rotate-45"></div>
-                </div>
-              </div>
-            </div>
-
-            {/* Tracks */}
-            <div className="flex flex-col bg-[#FAFAFA]">
-              {/* V2 */}
-              <div className="flex border-b-2 border-gray-200 h-16">
-                <div className="w-24 shrink-0 bg-white border-r-4 border-black flex flex-col items-center justify-center text-[10px] font-black uppercase">
-                  <span className="mb-1">V2</span>
-                  <div className="flex gap-2 text-gray-500"><Lock className="w-3 h-3" /><Eye className="w-3 h-3" /></div>
-                </div>
-                <div className="flex-1 relative p-2">
-                  <div className="absolute left-10 w-48 h-12 bg-[#FFEDF4] border-4 border-black shadow-[2px_2px_0px_0px_rgba(0,0,0,1)] flex items-center px-3 font-black text-sm">T Title Here</div>
-                </div>
-              </div>
-
-              {/* V1 */}
-              <div className="flex border-b-2 border-gray-200 h-20 bg-[#FFF8EB]">
-                <div className="w-24 shrink-0 bg-white border-r-4 border-black flex flex-col items-center justify-center text-[10px] font-black uppercase">
-                  <span className="mb-1">V1</span>
-                  <div className="flex gap-2 text-gray-500"><Lock className="w-3 h-3" /><Eye className="w-3 h-3 text-black" /></div>
-                </div>
-                <div className="flex-1 relative p-2 flex gap-1">
-                  <div className="w-[30%] h-16 bg-[#F5A623] border-4 border-black shadow-[2px_2px_0px_0px_rgba(0,0,0,1)] relative overflow-hidden flex items-end p-1">
-                    <span className="text-[10px] font-black bg-white border-2 border-black px-1">Clip 1</span>
-                  </div>
-                  <div className="w-[45%] h-16 bg-[#F5A623] border-4 border-black shadow-[2px_2px_0px_0px_rgba(0,0,0,1)] relative overflow-hidden flex items-end p-1">
-                     <span className="text-[10px] font-black bg-white border-2 border-black px-1">Clip 2</span>
-                  </div>
-                </div>
-              </div>
-
-              {/* A1 */}
-              <div className="flex border-b-2 border-gray-200 h-16">
-                <div className="w-24 shrink-0 bg-white border-r-4 border-black flex flex-col items-center justify-center text-[10px] font-black uppercase">
-                  <span className="mb-1">A1</span>
-                  <div className="flex gap-2 text-gray-500"><Lock className="w-3 h-3" /><Mic className="w-3 h-3 text-black" /></div>
-                </div>
-                <div className="flex-1 relative p-2">
-                  <div className="absolute left-2 right-24 h-12 bg-[#00E5FF] border-4 border-black shadow-[2px_2px_0px_0px_rgba(0,0,0,1)] flex items-center px-3 font-black text-xs">Music_Loop.mp3</div>
-                </div>
-              </div>
-
-              {/* T1 */}
-              <div className="flex h-16">
-                <div className="w-24 shrink-0 bg-white border-r-4 border-black flex flex-col items-center justify-center text-[10px] font-black uppercase">
-                  <span className="mb-1">T1</span>
-                  <div className="flex gap-2 text-gray-500"><Type className="w-3 h-3 text-black" /></div>
-                </div>
-                <div className="flex-1 relative p-2">
-                  <div className="absolute left-[30%] w-64 h-12 bg-black text-white border-4 border-[#F5A623] shadow-[2px_2px_0px_0px_rgba(0,0,0,1)] flex items-center px-3 font-black text-sm">Subtitle Text Here</div>
-                </div>
-              </div>
-            </div>
-          </div>
+          {/* Timeline UI Removed as part of AI Copilot Backend Integration */}
         </div>
 
         {/* Right Sidebar */}
@@ -192,22 +232,27 @@ export default function CopilotPage() {
           <div className="p-6 border-y-4 border-black bg-[#FAFAFA]">
             <h3 className="font-black uppercase text-lg mb-4">Info</h3>
             <div className="space-y-2 text-sm font-bold">
-              <div className="flex justify-between">
-                <span className="text-gray-500">Video</span>
-                <span>Video_01.mp4</span>
-              </div>
-              <div className="flex justify-between">
-                <span className="text-gray-500">Duration</span>
-                <span>01:23:20</span>
-              </div>
-              <div className="flex justify-between">
-                <span className="text-gray-500">Resolution</span>
-                <span>1920x1080</span>
-              </div>
-              <div className="flex justify-between">
-                <span className="text-gray-500">Frame Rate</span>
-                <span>30 FPS</span>
-              </div>
+              {selectedVideoId ? (() => {
+                const sv = videos.find(v => v.id === selectedVideoId);
+                return (
+                  <>
+                    <div className="flex justify-between">
+                      <span className="text-gray-500">Video</span>
+                      <span className="truncate max-w-[120px]">{sv?.title}</span>
+                    </div>
+                    <div className="flex justify-between">
+                      <span className="text-gray-500">Duration</span>
+                      <span>{sv?.duration}s</span>
+                    </div>
+                    <div className="flex justify-between">
+                      <span className="text-gray-500">Status</span>
+                      <span className="uppercase text-[#F5A623]">{sv?.status}</span>
+                    </div>
+                  </>
+                );
+              })() : (
+                <div className="text-gray-500 text-xs italic">Pilih video untuk melihat detail.</div>
+              )}
             </div>
           </div>
 

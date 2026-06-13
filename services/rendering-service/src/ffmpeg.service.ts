@@ -1,5 +1,5 @@
 import { Injectable, Logger } from '@nestjs/common';
-import * as ffmpeg from 'fluent-ffmpeg';
+const ffmpeg = require('fluent-ffmpeg');
 import * as ffmpegInstaller from '@ffmpeg-installer/ffmpeg';
 import * as path from 'path';
 import * as fs from 'fs';

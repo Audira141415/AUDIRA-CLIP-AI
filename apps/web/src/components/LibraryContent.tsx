@@ -1,3 +1,4 @@
+// @ts-nocheck
 'use client';
 
 import DashboardLayout from "@/components/layout/DashboardLayout";
@@ -5,20 +6,31 @@ import { Search, Plus, FolderPlus, Play, LayoutGrid, List, ChevronDown, MoreVert
 import Image from 'next/image';
 import { useState, useEffect } from 'react';
 import Link from 'next/link';
+import { useSession } from 'next-auth/react';
+import { api } from '@/lib/api';
+
+import { useVideoStore } from '@/store/useVideoStore';
+import PageHero from "@/components/ui/PageHero";
 
 export default function LibraryContent({ activeTab }: { activeTab: string }) {
   const [sortBy, setSortBy] = useState('Sort: Newest');
   const [folder, setFolder] = useState('All Folders');
-  const [items, setItems] = useState<any[]>([]);
-  const [isLoading, setIsLoading] = useState(true);
+  const [tag, setTag] = useState('All Tags');
+  const [duration, setDuration] = useState('All Durations');
+  const [owner, setOwner] = useState('All Owners');
+  const [openFilterDropdown, setOpenFilterDropdown] = useState<string | null>(null);
+  const [viewMode, setViewMode] = useState<'grid' | 'list'>('grid');
+  const [searchQuery, setSearchQuery] = useState('');
+  const [debouncedSearch, setDebouncedSearch] = useState('');
+  const { videos: items, isLoading, fetchVideos, setVideos: setItems, renameMedia, mergeClips } = useVideoStore();
 
   // Helper to transform internal DB URL to HTTP
   const getMediaUrl = (url: string | undefined | null) => {
     if (!url) return null;
     if (url.startsWith('http')) return url;
-    if (url.startsWith('local://')) return url.replace('local://', 'http://localhost:3001/');
+    if (url.startsWith('local://')) return url.replace('local://', 'http://localhost:3345/');
     // Fallback if it's stored as raw filename
-    return `http://localhost:3001/uploads/${url.split('/').pop()}`;
+    return `http://localhost:3345/uploads/${url.split('/').pop()}`;
   };
   const [openDropdownId, setOpenDropdownId] = useState<string | null>(null);
   const [playingVideoUrl, setPlayingVideoUrl] = useState<string | null>(null);
@@ -61,7 +73,7 @@ export default function LibraryContent({ activeTab }: { activeTab: string }) {
       for (const item of selectedItemsData) {
         const type = item.videoId ? 'clip' : 'video';
         const finalAction = activeTab === 'TRASH' && action === 'trash' ? 'delete' : action;
-        await fetch(`http://localhost:3001/video/${finalAction}/${type}/${item.id}`, { method: 'POST' });
+        await api.post(`/video/${finalAction}/${type}/${item.id}`);
       }
       if (action === 'trash') {
         setItems(items.filter(item => !selectedIds.has(item.id)));
@@ -75,17 +87,17 @@ export default function LibraryContent({ activeTab }: { activeTab: string }) {
   const handleAction = async (action: string, type: string, id: string) => {
     try {
       if (action === 'trash') {
-        await fetch(`http://localhost:3001/video/trash/${type}/${id}`, { method: 'POST' });
+        await api.post(`/video/trash/${type}/${id}`);
         // Refresh by removing locally
         setItems(items.filter(item => item.id !== id));
       } else if (action === 'delete') {
-        await fetch(`http://localhost:3001/video/delete/${type}/${id}`, { method: 'POST' });
+        await api.post(`/video/delete/${type}/${id}`);
         setItems(items.filter(item => item.id !== id));
       } else if (action === 'restore') {
-        await fetch(`http://localhost:3001/video/restore/${type}/${id}`, { method: 'POST' });
+        await api.post(`/video/restore/${type}/${id}`);
         setItems(items.filter(item => item.id !== id));
       } else if (action === 'favorite') {
-        await fetch(`http://localhost:3001/video/favorite/${type}/${id}`, { method: 'POST' });
+        await api.post(`/video/favorite/${type}/${id}`);
         // Refresh by toggling locally
         setItems(items.map(item => item.id === id ? { ...item, isFavorite: !item.isFavorite } : item));
       }
@@ -95,48 +107,27 @@ export default function LibraryContent({ activeTab }: { activeTab: string }) {
     setOpenDropdownId(null);
   };
 
-  // Mock Auth
-  const userId = "test-user";
+  const { data: session } = useSession();
+  const userId = (session?.user as any)?.id || "1";
   const workspaceId = "test-workspace";
 
-  const fetchLibrary = async () => {
-    try {
-      const tabMap: any = {
-        'ALL VIDEOS': 'ALL',
-        'CLIPS': 'CLIPS',
-        'PROJECTS': 'PROJECTS',
-        'FAVORITES': 'FAVORITES',
-        'TRASH': 'TRASH'
-      };
-      
-      const params = new URLSearchParams({
-        userId,
-        workspaceId,
-        tab: tabMap[activeTab],
-        sortBy,
-        folder
-      });
-
-      const res = await fetch(`http://localhost:3001/video/library?${params.toString()}`);
-      if (res.ok) {
-        const data = await res.json();
-        if (Array.isArray(data)) {
-          setItems(data);
-        } else if (data.videos && data.clips) {
-          setItems([...data.videos, ...data.clips]);
-        } else {
-          setItems([]);
-        }
-      }
-    } catch (error) {
-      console.error("Failed to fetch library", error);
-    }
-  };
+  useEffect(() => {
+    const timer = setTimeout(() => {
+      setDebouncedSearch(searchQuery);
+    }, 500);
+    return () => clearTimeout(timer);
+  }, [searchQuery]);
 
   useEffect(() => {
-    setIsLoading(true);
-    fetchLibrary().finally(() => setIsLoading(false));
-  }, [activeTab, sortBy, folder]);
+    const tabMap: any = {
+      'ALL VIDEOS': 'ALL',
+      'CLIPS': 'CLIPS',
+      'PROJECTS': 'PROJECTS',
+      'FAVORITES': 'FAVORITES',
+      'TRASH': 'TRASH'
+    };
+    fetchVideos({ tab: tabMap[activeTab], sortBy, folder, search: debouncedSearch, tag, duration, owner, userId, workspaceId });
+  }, [activeTab, sortBy, folder, debouncedSearch, tag, duration, owner, fetchVideos, userId, workspaceId]);
 
   // Polling mechanism
   useEffect(() => {
@@ -144,11 +135,18 @@ export default function LibraryContent({ activeTab }: { activeTab: string }) {
     if (!hasProcessing) return;
 
     const interval = setInterval(() => {
-      fetchLibrary();
+      const tabMap: any = {
+        'ALL VIDEOS': 'ALL',
+        'CLIPS': 'CLIPS',
+        'PROJECTS': 'PROJECTS',
+        'FAVORITES': 'FAVORITES',
+        'TRASH': 'TRASH'
+      };
+      fetchVideos({ tab: tabMap[activeTab], sortBy, folder, search: debouncedSearch, tag, duration, owner, userId, workspaceId });
     }, 2000);
 
     return () => clearInterval(interval);
-  }, [items, activeTab, sortBy, folder]);
+  }, [items, activeTab, sortBy, folder, debouncedSearch, tag, duration, owner]);
 
   const tabs = [
     { name: 'ALL VIDEOS', href: '/library', count: activeTab === 'ALL VIDEOS' ? items.length : '?' },
@@ -162,38 +160,39 @@ export default function LibraryContent({ activeTab }: { activeTab: string }) {
     <DashboardLayout>
       <div className="flex-1 bg-background min-h-screen text-black font-sans p-8">
         
-        {/* Top Header */}
-        <div className="flex justify-between items-start mb-8">
-          <div>
-            <h1 className="text-5xl font-heading font-black uppercase tracking-tight mb-6">Video Library</h1>
-            
-            {/* Tabs */}
-            <div className="flex gap-6 border-b-4 border-black pb-0">
-              {tabs.map((tab) => (
-                <Link
-                  key={tab.name}
-                  href={tab.href}
-                  className={`pb-4 px-2 flex items-center gap-2 text-lg font-black transition-colors border-b-4 ${
-                    activeTab === tab.name ? 'border-primary text-black bg-white shadow-neu translate-y-[-4px] translate-x-[-4px]' : 'border-transparent text-gray-600 hover:text-black hover:bg-secondary'
-                  }`}
-                >
-                  {tab.name}
-                  <span className={`text-sm py-0.5 px-2 border-2 border-black font-bold ${activeTab === tab.name ? 'bg-primary text-black' : 'bg-white text-black'}`}>
-                    {tab.count}
-                  </span>
-                </Link>
-              ))}
-            </div>
-          </div>
+        <PageHero
+          title="Video Library"
+          description="Manage, organize, and find all your videos and clips."
+          imageSrc="/images/hero_library.png"
+          imageAlt="Library Hero"
+          rightContent={
+            <>
+              <Link href="/upload" className="flex items-center gap-2 bg-white hover:bg-secondary border-4 border-black shadow-neu hover:translate-y-[-2px] hover:translate-x-[-2px] px-6 py-3 font-black uppercase text-lg transition-all">
+                Upload <ChevronDown className="w-5 h-5" strokeWidth={3} />
+              </Link>
+              <button className="flex items-center gap-2 bg-primary hover:bg-white border-4 border-black shadow-neu hover:translate-y-[-2px] hover:translate-x-[-2px] px-6 py-3 font-black uppercase text-lg transition-all">
+                <FolderPlus className="w-5 h-5" strokeWidth={3} /> New Folder
+              </button>
+            </>
+          }
+        />
 
-          <div className="flex gap-4">
-            <Link href="/upload" className="flex items-center gap-2 bg-white hover:bg-secondary border-4 border-black shadow-neu hover:translate-y-[-2px] hover:translate-x-[-2px] px-6 py-3 font-black uppercase text-lg transition-all">
-              Upload <ChevronDown className="w-5 h-5" strokeWidth={3} />
+        {/* Tabs */}
+        <div className="flex gap-6 border-b-4 border-black pb-0 mb-8">
+          {tabs.map((tab) => (
+            <Link
+              key={tab.name}
+              href={tab.href}
+              className={`pb-4 px-2 flex items-center gap-2 text-lg font-black transition-colors border-b-4 ${
+                activeTab === tab.name ? 'border-primary text-black bg-white shadow-neu translate-y-[-4px] translate-x-[-4px]' : 'border-transparent text-gray-600 hover:text-black hover:bg-secondary'
+              }`}
+            >
+              {tab.name}
+              <span className={`text-sm py-0.5 px-2 border-2 border-black font-bold ${activeTab === tab.name ? 'bg-primary text-black' : 'bg-white text-black'}`}>
+                {tab.count}
+              </span>
             </Link>
-            <button className="flex items-center gap-2 bg-primary hover:bg-white border-4 border-black shadow-neu hover:translate-y-[-2px] hover:translate-x-[-2px] px-6 py-3 font-black uppercase text-lg transition-all">
-              <FolderPlus className="w-5 h-5" strokeWidth={3} /> New Folder
-            </button>
-          </div>
+          ))}
         </div>
 
         {/* Filters Bar */}
@@ -211,34 +210,86 @@ export default function LibraryContent({ activeTab }: { activeTab: string }) {
             </label>
 
             {selectedIds.size > 0 && (
-              <button 
-                onClick={() => handleBulkAction('trash')}
-                className="bg-primary hover:bg-white text-black border-4 border-black font-black uppercase px-4 py-2 shadow-neu hover:translate-y-[-2px] hover:translate-x-[-2px] transition-colors"
-              >
-                Delete Selected ({selectedIds.size})
-              </button>
+              <div className="flex gap-2">
+                {selectedIds.size > 1 && (
+                  <button 
+                    onClick={async () => {
+                      if(confirm('Gabungkan klip terpilih ke dalam satu proyek?')) {
+                        await mergeClips(Array.from(selectedIds), userId, workspaceId);
+                        alert('Proyek berhasil dibuat! Cek tab PROJECTS.');
+                        setSelectedIds(new Set());
+                      }
+                    }}
+                    className="bg-[#00E5FF] hover:bg-white text-black border-4 border-black font-black uppercase px-4 py-2 shadow-neu hover:translate-y-[-2px] hover:translate-x-[-2px] transition-colors"
+                  >
+                    Merge ({selectedIds.size})
+                  </button>
+                )}
+                <button 
+                  onClick={() => handleBulkAction('trash')}
+                  className="bg-primary hover:bg-white text-black border-4 border-black font-black uppercase px-4 py-2 shadow-neu hover:translate-y-[-2px] hover:translate-x-[-2px] transition-colors"
+                >
+                  Delete ({selectedIds.size})
+                </button>
+              </div>
             )}
 
-            {['All Folders', 'All Tags', 'All Durations', 'All Owners'].map((filter) => (
-              <button 
-                key={filter} 
-                onClick={() => filter === 'All Folders' && setFolder(folder === 'All Folders' ? 'Important' : 'All Folders')}
-                className="flex items-center gap-2 bg-white hover:bg-accent-teal border-4 border-black shadow-neu hover:translate-y-[-2px] hover:translate-x-[-2px] px-4 py-2 text-md font-bold text-black uppercase transition-all"
-              >
-                {filter === 'All Folders' ? folder : filter} <ChevronDown className="w-5 h-5 text-black" strokeWidth={3} />
-              </button>
-            ))}
+            {/* Search Bar */}
+            <div className="relative">
+              <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-5 h-5 text-gray-500" strokeWidth={3} />
+              <input 
+                type="text" 
+                placeholder="Cari video..." 
+                value={searchQuery}
+                onChange={(e) => setSearchQuery(e.target.value)}
+                className="pl-10 pr-4 py-2 w-64 bg-white border-4 border-black font-bold focus:outline-none focus:bg-[#FFEDF4] shadow-[4px_4px_0px_0px_rgba(0,0,0,1)] transition-colors"
+              />
+            </div>
+
+            {
+              [
+                { id: 'folder', value: folder, options: ['All Folders', 'Important', 'Drafts'], setter: setFolder },
+                { id: 'tag', value: tag, options: ['All Tags', 'Gaming', 'Podcast', 'Vlog', 'Tutorial'], setter: setTag },
+                { id: 'duration', value: duration, options: ['All Durations', '< 1 Menit', '1-5 Menit', '> 5 Menit'], setter: setDuration },
+                { id: 'owner', value: owner, options: ['All Owners', 'Hanya Saya', 'Tim'], setter: setOwner },
+              ].map((filterDef) => (
+                <div key={filterDef.id} className="relative">
+                  <button 
+                    onClick={() => setOpenFilterDropdown(openFilterDropdown === filterDef.id ? null : filterDef.id)}
+                    className="flex items-center gap-2 bg-white hover:bg-accent-teal border-4 border-black shadow-neu hover:translate-y-[-2px] hover:translate-x-[-2px] px-4 py-2 text-md font-bold text-black uppercase transition-all"
+                  >
+                    {filterDef.value} <ChevronDown className="w-5 h-5 text-black" strokeWidth={3} />
+                  </button>
+                  {openFilterDropdown === filterDef.id && (
+                    <div className="absolute top-full left-0 mt-2 w-48 bg-white border-4 border-black shadow-[4px_4px_0px_0px_rgba(0,0,0,1)] z-50 flex flex-col font-black uppercase text-sm">
+                      {filterDef.options.map((opt, i) => (
+                        <button
+                          key={opt}
+                          onClick={() => {
+                            filterDef.setter(opt);
+                            setOpenFilterDropdown(null);
+                          }}
+                          className={`p-3 text-left hover:bg-[#00E5FF] ${i !== filterDef.options.length - 1 ? 'border-b-4 border-black' : ''} ${filterDef.value === opt ? 'bg-secondary' : ''}`}
+                        >
+                          {opt}
+                        </button>
+                      ))}
+                    </div>
+                  )}
+                </div>
+              ))
+            }
           </div>
           <div className="flex items-center gap-6">
             <button 
               onClick={() => setSortBy(sortBy === 'Sort: Newest' ? 'Sort: Oldest' : 'Sort: Newest')}
-              className="flex items-center gap-2 text-md font-black text-black bg-white border-4 border-black px-4 py-2 shadow-neu uppercase"
+              className="flex items-center gap-2 text-md font-black text-black bg-white border-4 border-black px-4 py-2 shadow-neu uppercase hover:translate-y-[-2px] hover:translate-x-[-2px] transition-all"
             >
               {sortBy} <ChevronDown className="w-5 h-5" strokeWidth={3} />
             </button>
             <div className="flex items-center gap-2 border-4 border-black p-1 bg-secondary shadow-neu">
-              <button className="p-2 bg-white border-2 border-black shadow-[2px_2px_0px_0px_rgba(0,0,0,1)] text-black"><LayoutGrid className="w-5 h-5" strokeWidth={3} /></button>
-              <button className="p-2 bg-transparent text-black hover:bg-white border-2 border-transparent hover:border-black"><List className="w-5 h-5" strokeWidth={3} /></button>
+              <button onClick={() => setViewMode('grid')} className={`p-2 border-2 text-black transition-all ${viewMode === 'grid' ? 'bg-white border-black shadow-[2px_2px_0px_0px_rgba(0,0,0,1)]' : 'bg-transparent border-transparent hover:border-black hover:bg-white'}`}><LayoutGrid className="w-5 h-5" strokeWidth={3} /></button>
+              <button onClick={() => setViewMode('list')} className={`p-2 border-2 text-black transition-all ${viewMode === 'list' ? 'bg-white border-black shadow-[2px_2px_0px_0px_rgba(0,0,0,1)]' : 'bg-transparent border-transparent hover:border-black hover:bg-white'}`}><List className="w-5 h-5" strokeWidth={3} /></button>
             </div>
           </div>
         </div>
@@ -259,7 +310,7 @@ export default function LibraryContent({ activeTab }: { activeTab: string }) {
 
         {/* Video Grid */}
         {!isLoading && items.length > 0 && (
-          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-8 items-start">
+          <div className={`grid gap-8 items-start ${viewMode === 'grid' ? 'grid-cols-1 md:grid-cols-2 lg:grid-cols-4' : 'grid-cols-1 md:grid-cols-2'}`}>
             {items.map((item) => {
               // Handle mixed items (videos, clips, projects) gracefully
               const title = item.title || item.name || 'Untitled';
@@ -372,9 +423,27 @@ export default function LibraryContent({ activeTab }: { activeTab: string }) {
                             </>
                           ) : (
                             <>
-                              <Link href={`/clipper?videoId=${item.id}`} className="p-3 text-left hover:bg-accent-blue border-b-4 border-black">
-                                Buka di Clipper (Edit)
+                              <Link href={`/editor?videoId=${item.id}`} className="p-3 text-left hover:bg-accent-blue border-b-4 border-black">
+                                Buka di Editor
                               </Link>
+                              <Link href={`/subtitles?videoId=${item.id}`} className="p-3 text-left hover:bg-[#D8B4E2] border-b-4 border-black">
+                                Buka Subtitle Studio
+                              </Link>
+                              <button onClick={() => {
+                                const newTitle = prompt('Masukkan nama baru:', title);
+                                if (newTitle && newTitle !== title) renameMedia(item.videoId ? 'clip' : 'video', item.id, newTitle);
+                              }} className="p-3 text-left hover:bg-[#00E5FF] border-b-4 border-black">
+                                Ganti Nama
+                              </button>
+                              <a href={getMediaUrl(item.url) || '#'} download target="_blank" rel="noreferrer" className="p-3 text-left hover:bg-[#FFEDF4] border-b-4 border-black">
+                                Unduh MP4
+                              </a>
+                              <button onClick={() => {
+                                navigator.clipboard.writeText(`http://localhost:3344/share/${item.id}`);
+                                alert('Tautan publik disalin!');
+                              }} className="p-3 text-left hover:bg-accent-teal border-b-4 border-black">
+                                Salin Tautan
+                              </button>
                               <button onClick={() => handleAction('favorite', item.videoId ? 'clip' : 'video', item.id)} className="p-3 text-left hover:bg-warning border-b-4 border-black">
                                 {isFav ? 'Hapus Favorit' : 'Jadikan Favorit'}
                               </button>

@@ -37,7 +37,7 @@ async function main() {
     prisma.video.create({
       data: {
         title: 'Podcast Episode #47.mp4',
-        url: 'http://localhost:3001/uploads/podcast47.mp4',
+        url: 'http://localhost:3345/uploads/podcast47.mp4',
         duration: 2712, // 45:12
         status: 'READY',
         userId: user.id,
@@ -46,13 +46,13 @@ async function main() {
           create: [
             {
               title: 'Viral Hook Moment',
-              url: 'http://localhost:3001/uploads/clip1.mp4',
+              url: 'http://localhost:3345/uploads/clip1.mp4',
               duration: 15,
               score: 96,
             },
             {
               title: 'Funny Reaction',
-              url: 'http://localhost:3001/uploads/clip2.mp4',
+              url: 'http://localhost:3345/uploads/clip2.mp4',
               duration: 12,
               score: 89,
             },
@@ -63,7 +63,7 @@ async function main() {
     prisma.video.create({
       data: {
         title: 'Webinar - Data Center.mp4',
-        url: 'http://localhost:3001/uploads/webinar.mp4',
+        url: 'http://localhost:3345/uploads/webinar.mp4',
         duration: 3600,
         status: 'READY',
         userId: user.id,

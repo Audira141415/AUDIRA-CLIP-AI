@@ -2,23 +2,51 @@
 
 import DashboardLayout from "@/components/layout/DashboardLayout";
 import { Search, ChevronDown, Plus, Play, Clock, CheckCircle2, AlertTriangle, Download, RefreshCw, MoreHorizontal, Folder, MonitorPlay, Smartphone, Video, ChevronLeft, ChevronRight } from "lucide-react";
+import PageHero from "@/components/ui/PageHero";
+import { useSocket } from "@/hooks/useSocket";
+import { useVideoStore } from "@/store/useVideoStore";
+import { useEffect } from "react";
 
 export default function RenderQueuePage() {
-  const stats = [
-    { label: "Rendering", count: 2, icon: Play, bg: "bg-[#00E5FF]" },
-    { label: "Waiting", count: 1, icon: Clock, bg: "bg-[#F5A623]" },
-    { label: "Completed", count: 5, icon: CheckCircle2, bg: "bg-[#FFEDF4]" },
-    { label: "Failed", count: 1, icon: AlertTriangle, bg: "bg-red-400" }
-  ];
+  const socket = useSocket();
+  const { videos, fetchVideos, setVideos } = useVideoStore();
 
-  const queue = [
-    { title: "Travel Vlog - Episode 3", details: "1920x1080 • 30fps", preset: "YouTube 1080p", codec: "H.264", status: "Rendering", statusColor: "bg-[#00E5FF]", progress: 65, time: "00:01:24", totalTime: "00:03:12", outFormat: "MP4", outRes: "1080p" },
-    { title: "Marketing Video", details: "1920x1080 • 30fps", preset: "Instagram Reels", codec: "H.264", status: "Rendering", statusColor: "bg-[#00E5FF]", progress: 28, time: "00:00:52", totalTime: "00:03:01", outFormat: "MP4", outRes: "1080x1920" },
-    { title: "Tutorial - Color Grading", details: "3840x2160 • 30fps", preset: "Custom 4K", codec: "H.265", status: "Waiting", statusColor: "bg-[#F5A623]", progress: 0, time: "-", totalTime: "-", outFormat: "MP4", outRes: "4K" },
-    { title: "Product Promo", details: "1920x1080 • 30fps", preset: "Vimeo 1080p", codec: "H.264", status: "Completed", statusColor: "bg-green-400", progress: 100, time: "-", totalTime: "-", outFormat: "MP4", outRes: "1080p" },
-    { title: "Interview - John Doe", details: "1920x1080 • 30fps", preset: "YouTube 1080p", codec: "H.264", status: "Completed", statusColor: "bg-green-400", progress: 100, time: "-", totalTime: "-", outFormat: "MP4", outRes: "1080p" },
-    { title: "Social Media Clip", details: "1080x1920 • 30fps", preset: "TikTok 1080x1920", codec: "H.264", status: "Completed", statusColor: "bg-green-400", progress: 100, time: "-", totalTime: "-", outFormat: "MP4", outRes: "1080x1920" },
-    { title: "Event Highlight", details: "1920x1080 • 30fps", preset: "Custom", codec: "H.264", status: "Failed", statusColor: "bg-red-400", progress: 0, time: "-", totalTime: "-", outFormat: "MP4", outRes: "1080p" }
+  useEffect(() => {
+    fetchVideos();
+  }, []);
+
+  useEffect(() => {
+    if (!socket) return;
+    
+    socket.on('job_progress', (data) => {
+      console.log('Real-time Progress:', data);
+      setVideos(videos.map(v => v.id === data.videoId ? { ...v, progress: data.progress, statusMessage: data.statusMessage, status: data.status } : v));
+    });
+
+    return () => {
+      socket.off('job_progress');
+    };
+  }, [socket, videos, setVideos]);
+
+  const queue = videos.map(v => ({
+    title: v.title || 'Untitled',
+    details: 'Auto Resolution',
+    preset: v.id,
+    codec: 'Auto',
+    status: v.status === 'PROCESSING' ? 'Rendering' : (v.status === 'PENDING' ? 'Waiting' : v.status),
+    statusColor: v.status === 'PROCESSING' ? 'bg-[#00E5FF]' : (v.status === 'FAILED' ? 'bg-red-400' : 'bg-green-400'),
+    progress: v.progress || 0,
+    time: '-',
+    totalTime: '-',
+    outFormat: 'MP4',
+    outRes: 'Auto'
+  }));
+
+  const stats = [
+    { label: "Rendering", count: queue.filter(q => q.status === 'Rendering').length, icon: Play, bg: "bg-[#00E5FF]" },
+    { label: "Waiting", count: queue.filter(q => q.status === 'Waiting').length, icon: Clock, bg: "bg-[#F5A623]" },
+    { label: "Completed", count: queue.filter(q => q.status === 'READY').length, icon: CheckCircle2, bg: "bg-[#FFEDF4]" },
+    { label: "Failed", count: queue.filter(q => q.status === 'FAILED').length, icon: AlertTriangle, bg: "bg-red-400" }
   ];
 
   const presets = [
@@ -39,11 +67,12 @@ export default function RenderQueuePage() {
         {/* Main Content Area (Left) */}
         <div className="flex-1 flex flex-col p-8 overflow-y-auto h-[calc(100vh-80px)] z-10 relative">
           
-          {/* Header */}
-          <div className="mb-6">
-            <h1 className="text-4xl font-black uppercase mb-2">Render Queue</h1>
-            <p className="font-bold text-gray-700">Manage your render tasks and download your videos.</p>
-          </div>
+          <PageHero
+            title="Render Queue"
+            description="Manage your render tasks and download your videos."
+            imageSrc="/images/hero_renders.png"
+            imageAlt="Renders Hero"
+          />
 
           {/* Tabs */}
           <div className="flex border-b-4 border-black mb-6">

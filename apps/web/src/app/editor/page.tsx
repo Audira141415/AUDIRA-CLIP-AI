@@ -9,7 +9,75 @@ import {
   AlignLeft, AlignCenter, AlignRight
 } from "lucide-react";
 
-export default function EditorPage() {
+import { Suspense, useEffect, useState, useRef } from "react";
+import { useSearchParams } from "next/navigation";
+import { useVideoStore } from "@/store/useVideoStore";
+import { motion } from "framer-motion";
+
+function EditorContent() {
+  const searchParams = useSearchParams();
+  const videoId = searchParams.get('videoId');
+  const { 
+    currentVideo, fetchVideoDetails, exportClip, isLoading,
+    currentTime, isPlaying, setCurrentTime, setIsPlaying
+  } = useVideoStore();
+  
+  const [isExporting, setIsExporting] = useState(false);
+  const videoRef = useRef<HTMLVideoElement>(null);
+
+  useEffect(() => {
+    if (videoId) {
+      fetchVideoDetails(videoId);
+    }
+  }, [videoId, fetchVideoDetails]);
+
+  // Sync video play state
+  useEffect(() => {
+    if (videoRef.current) {
+      if (isPlaying) {
+        videoRef.current.play().catch(e => console.log('Auto-play blocked'));
+      } else {
+        videoRef.current.pause();
+      }
+    }
+  }, [isPlaying]);
+
+  const togglePlay = () => setIsPlaying(!isPlaying);
+
+  const handleTimeUpdate = () => {
+    if (videoRef.current) {
+      setCurrentTime(videoRef.current.currentTime);
+    }
+  };
+
+  const handleSeek = (time: number) => {
+    if (videoRef.current) {
+      videoRef.current.currentTime = time;
+      setCurrentTime(time);
+    }
+  };
+
+  const formatTime = (timeInSeconds: number) => {
+    const pad = (num: number, size = 2) => num.toString().padStart(size, '0');
+    const h = Math.floor(timeInSeconds / 3600);
+    const m = Math.floor((timeInSeconds % 3600) / 60);
+    const s = Math.floor(timeInSeconds % 60);
+    const ms = Math.floor((timeInSeconds % 1) * 100);
+    return `${pad(h)}:${pad(m)}:${pad(s)}:${pad(ms)}`;
+  };
+
+  const handleExport = async () => {
+    if (!videoId) return;
+    setIsExporting(true);
+    try {
+      await exportClip(videoId, {}, 'center');
+      alert('Export started successfully! Check Render Queue.');
+    } catch (e) {
+      alert('Failed to start export');
+    } finally {
+      setIsExporting(false);
+    }
+  };
   const mediaItems = [
     { title: "Interview_Fin...", type: "video", time: "00:54", thumb: "/feature_clipping.png" },
     { title: "B-Roll_01.mp4", type: "video", time: "00:12", thumb: "/feature_privacy.png" },
@@ -39,7 +107,7 @@ export default function EditorPage() {
               <button className="flex flex-col items-center gap-1 p-2 text-gray-500 hover:text-black transition-colors"><Type className="w-5 h-5"/><span className="text-[9px] font-bold uppercase">Text</span></button>
               <button className="flex flex-col items-center gap-1 p-2 text-gray-500 hover:text-black transition-colors"><ListVideo className="w-5 h-5"/><span className="text-[9px] font-bold uppercase">Transitions</span></button>
               <button className="flex flex-col items-center gap-1 p-2 text-gray-500 hover:text-black transition-colors"><Music className="w-5 h-5"/><span className="text-[9px] font-bold uppercase">Audio</span></button>
-              <button className="flex flex-col items-center gap-1 p-2 text-gray-500 hover:text-black transition-colors"><Filter className="w-5 h-5"/><span className="text-[9px] font-bold uppercase">Filters</span></button>
+              <button onClick={handleExport} disabled={isExporting} className="flex flex-col items-center gap-1 p-2 text-black bg-[#F5A623] border-2 border-black shadow-[2px_2px_0px_0px_rgba(0,0,0,1)] hover:bg-[#00E5FF] transition-colors"><span className="text-[9px] font-black uppercase">{isExporting ? 'Render...' : 'Export'}</span></button>
             </div>
 
             {/* Media Header */}
@@ -91,33 +159,58 @@ export default function EditorPage() {
 
                {/* Video Frame */}
                <div className="w-full max-w-3xl aspect-video bg-gray-900 border-8 border-black shadow-[12px_12px_0px_0px_rgba(0,0,0,1)] relative overflow-hidden">
-                  <img src="/feature_clipping.png" className="absolute inset-0 w-full h-full object-cover opacity-70 mix-blend-luminosity" />
+                  {currentVideo ? (
+                    <video 
+                      ref={videoRef}
+                      src={currentVideo.url} 
+                      className="absolute inset-0 w-full h-full object-contain mix-blend-luminosity opacity-70" 
+                      onTimeUpdate={handleTimeUpdate}
+                      onEnded={() => setIsPlaying(false)}
+                      autoPlay={false}
+                      loop={false}
+                      muted 
+                    />
+                  ) : (
+                    <img src="/feature_clipping.png" className="absolute inset-0 w-full h-full object-cover opacity-70 mix-blend-luminosity" />
+                  )}
                   
                   {/* Transform Box UI overlay */}
                   <div className="absolute inset-4 border-2 border-white/50 pointer-events-none"></div>
 
                   {/* Selected Text Element */}
-                  <div className="absolute bottom-12 left-1/2 -translate-x-1/2 border-2 border-[#F5A623] border-dashed p-4 cursor-move group">
-                    <div className="absolute -top-2 -left-2 w-4 h-4 bg-[#F5A623] border-2 border-black"></div>
-                    <div className="absolute -top-2 -right-2 w-4 h-4 bg-[#F5A623] border-2 border-black"></div>
-                    <div className="absolute -bottom-2 -left-2 w-4 h-4 bg-[#F5A623] border-2 border-black"></div>
-                    <div className="absolute -bottom-2 -right-2 w-4 h-4 bg-[#F5A623] border-2 border-black"></div>
-                    <div className="text-center">
+                  <motion.div 
+                    drag dragMomentum={false} 
+                    className="absolute bottom-12 left-1/2 -translate-x-1/2 border-2 border-transparent hover:border-[#F5A623] hover:border-dashed p-4 cursor-move group z-50"
+                  >
+                    <div className="opacity-0 group-hover:opacity-100 absolute -top-2 -left-2 w-4 h-4 bg-[#F5A623] border-2 border-black"></div>
+                    <div className="opacity-0 group-hover:opacity-100 absolute -top-2 -right-2 w-4 h-4 bg-[#F5A623] border-2 border-black"></div>
+                    <div className="opacity-0 group-hover:opacity-100 absolute -bottom-2 -left-2 w-4 h-4 bg-[#F5A623] border-2 border-black"></div>
+                    <div className="opacity-0 group-hover:opacity-100 absolute -bottom-2 -right-2 w-4 h-4 bg-[#F5A623] border-2 border-black"></div>
+                    <div className="text-center pointer-events-none">
                       <span className="text-2xl font-bold text-white leading-tight" style={{ textShadow: '2px 2px 0 #000, -1px -1px 0 #000, 1px -1px 0 #000, -1px 1px 0 #000, 1px 1px 0 #000' }}>
                         Welcome to Audra Clip,<br/>your AI-powered video editing platform.
                       </span>
                     </div>
-                  </div>
+                  </motion.div>
                </div>
             </div>
 
             {/* Video Controls */}
             <div className="h-14 border-t-4 border-black bg-white px-6 flex items-center justify-between shadow-[0px_-4px_0px_0px_rgba(0,0,0,0.05)] z-20 relative">
               <div className="flex items-center gap-4">
-                <button className="hover:text-[#F5A623] transition-colors"><SkipBack className="w-5 h-5 fill-current" strokeWidth={2}/></button>
-                <button className="hover:text-[#00E5FF] transition-colors"><Play className="w-6 h-6 fill-current" strokeWidth={2}/></button>
-                <button className="hover:text-[#F5A623] transition-colors"><SkipForward className="w-5 h-5 fill-current" strokeWidth={2}/></button>
-                <div className="font-black text-sm ml-4 border-l-4 border-black pl-4 py-1">00:00:01,200 <span className="text-gray-400">/ 00:01:23,400</span></div>
+                <button onClick={() => handleSeek(Math.max(0, currentTime - 5))} className="hover:text-[#F5A623] transition-colors"><SkipBack className="w-5 h-5 fill-current" strokeWidth={2}/></button>
+                <button onClick={togglePlay} className="hover:text-[#00E5FF] transition-colors">
+                  {isPlaying ? (
+                     <div className="w-6 h-6 flex justify-center items-center gap-1">
+                        <div className="w-2 h-4 bg-current"></div>
+                        <div className="w-2 h-4 bg-current"></div>
+                     </div>
+                  ) : (
+                    <Play className="w-6 h-6 fill-current" strokeWidth={2}/>
+                  )}
+                </button>
+                <button onClick={() => handleSeek(Math.min(currentVideo?.duration || 0, currentTime + 5))} className="hover:text-[#F5A623] transition-colors"><SkipForward className="w-5 h-5 fill-current" strokeWidth={2}/></button>
+                <div className="font-black text-sm ml-4 border-l-4 border-black pl-4 py-1">{formatTime(currentTime)} <span className="text-gray-400">/ {currentVideo?.duration ? formatTime(currentVideo.duration).split(':')[1] + ':' + formatTime(currentVideo.duration).split(':')[2] : '00:00'}</span></div>
               </div>
               
               <div className="flex items-center gap-6">
@@ -301,12 +394,22 @@ export default function EditorPage() {
               </div>
             </div>
 
-            <div className="flex-1 overflow-y-auto relative bg-[#FAFAFA]">
+            <div className="flex-1 overflow-y-auto relative bg-[#FAFAFA]" onClick={(e) => {
+              const rect = e.currentTarget.getBoundingClientRect();
+              const x = Math.max(0, e.clientX - rect.left - 160); // 160px is the track header width
+              const width = rect.width - 160;
+              const maxDuration = Math.max(currentVideo?.duration || 80, 80);
+              const newTime = (x / width) * maxDuration;
+              handleSeek(Math.min(maxDuration, newTime));
+            }}>
               
               {/* Playhead */}
-              <div className="absolute left-[25%] top-0 bottom-0 w-0.5 bg-[#F5A623] z-30 pointer-events-none">
+              <div 
+                className="absolute top-0 bottom-0 w-0.5 bg-[#F5A623] z-30 pointer-events-none transition-all duration-75"
+                style={{ left: `calc(160px + ${(currentTime / Math.max(currentVideo?.duration || 80, 80)) * 100}%)` }}
+              >
                  <div className="absolute -top-1 left-1/2 -translate-x-1/2 w-3 h-4 bg-[#F5A623] border-2 border-black clip-playhead flex items-center justify-center">
-                    <div className="text-[8px] font-black absolute -top-4 text-[#F5A623]">X</div>
+                    <div className="text-[8px] font-black absolute -top-4 text-[#F5A623]">▼</div>
                  </div>
               </div>
 
@@ -319,12 +422,18 @@ export default function EditorPage() {
                   <span className="flex-1 text-right">Overlay</span>
                 </div>
                 <div className="flex-1 relative p-1 bg-[url('data:image/svg+xml;base64,PHN2ZyB4bWxucz0iaHR0cDovL3d3dy53My5vcmcvMjAwMC9zdmciIHdpZHRoPSI0MCIgaGVpZ2h0PSI0MCI+PGxpbmUgeDE9IjIwIiB5MT0iMCIgeDI9IjIwIiB5Mj0iNDAiIHN0cm9rZT0iI2U1ZTVlNSIgc3Ryb2tlLXdpZHRoPSIxIiAvPjwvc3ZnPg==')]">
-                   <div className="absolute left-[15%] top-1 h-[80%] w-[12%] bg-[#D8B4E2] border-4 border-black border-r-0 flex items-center px-2 cursor-pointer shadow-[2px_2px_0px_0px_rgba(0,0,0,1)]">
+                   <motion.div 
+                     drag="x" dragMomentum={false} 
+                     className="absolute left-[15%] top-1 h-[80%] w-[12%] bg-[#D8B4E2] border-4 border-black border-r-0 flex items-center px-2 cursor-pointer shadow-[2px_2px_0px_0px_rgba(0,0,0,1)] z-10"
+                   >
                      <span className="text-[9px] font-black truncate">T Welcome to Audra Clip,</span>
-                   </div>
-                   <div className="absolute left-[27%] top-1 h-[80%] w-[18%] bg-[#D8B4E2] border-4 border-black flex items-center px-2 cursor-pointer hover:bg-opacity-80 transition-opacity">
+                   </motion.div>
+                   <motion.div 
+                     drag="x" dragMomentum={false} 
+                     className="absolute left-[27%] top-1 h-[80%] w-[18%] bg-[#D8B4E2] border-4 border-black flex items-center px-2 cursor-pointer hover:bg-opacity-80 transition-opacity z-10"
+                   >
                      <span className="text-[9px] font-black truncate">T your AI-powered video editing platform.</span>
-                   </div>
+                   </motion.div>
                 </div>
               </div>
 
@@ -388,13 +497,13 @@ export default function EditorPage() {
                   <span className="flex-1 text-right">Music</span>
                 </div>
                 <div className="flex-1 relative p-1">
-                   <div className="h-full w-[100%] bg-[#2B4B7C] border-4 border-black flex items-center px-1 overflow-hidden cursor-pointer shadow-[2px_2px_0px_0px_rgba(0,0,0,1)]">
-                      <div className="w-full h-full flex items-center justify-between gap-[2px] opacity-40">
+                   <motion.div drag="x" dragMomentum={false} className="h-full w-[100%] bg-[#2B4B7C] border-4 border-black flex items-center px-1 overflow-hidden cursor-pointer shadow-[2px_2px_0px_0px_rgba(0,0,0,1)] z-10">
+                      <div className="w-full h-full flex items-center justify-between gap-[2px] opacity-40 pointer-events-none">
                          {[...Array(200)].map((_, i) => (
                            <div key={i} className="w-1 bg-[#00E5FF]" style={{height: `${5 + (i * 11 % 50)}%`}}></div>
                          ))}
                       </div>
-                   </div>
+                   </motion.div>
                 </div>
               </div>
 
@@ -404,5 +513,13 @@ export default function EditorPage() {
         </div>
       </div>
     </DashboardLayout>
+  );
+}
+
+export default function EditorPage() {
+  return (
+    <Suspense fallback={<div>Loading editor...</div>}>
+      <EditorContent />
+    </Suspense>
   );
 }

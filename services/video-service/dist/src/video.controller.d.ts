@@ -1,7 +1,13 @@
 import { VideoService } from './video.service';
+import { VideoQueueProducer } from './queue/video.queue';
 export declare class VideoController {
     private readonly videoService;
-    constructor(videoService: VideoService);
+    private readonly queueProducer;
+    constructor(videoService: VideoService, queueProducer: VideoQueueProducer);
+    healthCheck(): {
+        status: string;
+        service: string;
+    };
     getStats(userId: string, workspaceId: string): Promise<{
         totalVideos: number;
         totalClips: number;
@@ -10,7 +16,7 @@ export declare class VideoController {
         aiUsage: string;
         teamMembers: number;
     }>;
-    getLibrary(userId: string, workspaceId: string, tab?: string, sortBy?: string, folder?: string): Promise<{
+    getLibrary(userId: string, workspaceId: string, tab?: string, sortBy?: string, folder?: string, search?: string, tag?: string, duration?: string, owner?: string): Promise<{
         id: string;
         userId: string;
         workspaceId: string;
@@ -346,6 +352,70 @@ export declare class VideoController {
         createdAt: Date;
         updatedAt: Date;
     } | undefined>;
+    renameMedia(type: string, id: string, title: string): Promise<{
+        id: string;
+        title: string;
+        url: string;
+        duration: number;
+        folder: string | null;
+        isFavorite: boolean;
+        isDeleted: boolean;
+        createdAt: Date;
+        updatedAt: Date;
+        videoId: string;
+        thumbnailUrl: string | null;
+        startTime: number;
+        score: number | null;
+        reason: string | null;
+        socialCaption: string | null;
+        hashtags: string | null;
+        wpm: number | null;
+        pacing: string | null;
+        brollKeyword: string | null;
+        vibe: string | null;
+        hookStrength: string | null;
+        retentionRisk: string | null;
+        targetDemographic: string | null;
+        bgmSuggestion: string | null;
+        alternativeTitle: string | null;
+        brandSafety: string | null;
+        ctaOverlay: string | null;
+        aspectRatio: string;
+        platform: string;
+    } | {
+        id: string;
+        userId: string;
+        workspaceId: string;
+        status: import("@prisma/client").$Enums.ProjectStatus;
+        createdAt: Date;
+        updatedAt: Date;
+        name: string;
+    } | {
+        progress: number;
+        id: string;
+        userId: string;
+        workspaceId: string;
+        title: string;
+        url: string;
+        duration: number;
+        status: import("@prisma/client").$Enums.VideoStatus;
+        statusMessage: string | null;
+        tags: string[];
+        folder: string | null;
+        isFavorite: boolean;
+        isDeleted: boolean;
+        createdAt: Date;
+        updatedAt: Date;
+    } | undefined>;
+    mergeClips(clipIds: string[], userId: string, workspaceId: string): Promise<{
+        id: string;
+        userId: string;
+        workspaceId: string;
+        status: import("@prisma/client").$Enums.ProjectStatus;
+        createdAt: Date;
+        updatedAt: Date;
+        name: string;
+    }>;
     uploadVideo(file: Express.Multer.File, userId: string, workspaceId: string, aspectsStr?: string, intent?: string, lang?: string, captions?: string, broll?: string, layoutMode?: string): Promise<{
         success: boolean;
         message: string;
@@ -489,5 +559,30 @@ export declare class VideoController {
         success: boolean;
         url: string;
         brollPath: string;
+    }>;
+    transcribeClip(clipId: string): Promise<{
+        success: boolean;
+        segments: any;
+        source: string;
+    }>;
+    getSubtitles(clipId: string): Promise<{
+        success: boolean;
+        segments: import("@prisma/client/runtime/library").JsonValue;
+        source: string;
+        message?: undefined;
+    } | {
+        success: boolean;
+        segments: never[];
+        message: string;
+        source?: undefined;
+    }>;
+    saveSubtitles(clipId: string, content: any): Promise<{
+        id: string;
+        createdAt: Date;
+        updatedAt: Date;
+        videoId: string | null;
+        clipId: string | null;
+        language: string;
+        content: import("@prisma/client/runtime/library").JsonValue;
     }>;
 }

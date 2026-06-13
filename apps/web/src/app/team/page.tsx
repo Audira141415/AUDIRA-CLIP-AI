@@ -2,6 +2,7 @@
 
 import DashboardLayout from "@/components/layout/DashboardLayout";
 import { Search, ChevronDown, UserPlus, ShieldAlert, Shield, Edit2, Eye, MoreHorizontal, Users, CreditCard, ChevronLeft, ChevronRight, LogOut, CheckCircle2, Circle } from "lucide-react";
+import PageHero from "@/components/ui/PageHero";
 
 export default function TeamPage() {
   const members = [
@@ -40,11 +41,12 @@ export default function TeamPage() {
         {/* Main Content Area (Left) */}
         <div className="flex-1 flex flex-col p-8 overflow-y-auto h-[calc(100vh-80px)] z-10 relative">
           
-          {/* Header */}
-          <div className="mb-8">
-            <h1 className="text-4xl font-black uppercase mb-2">Team</h1>
-            <p className="font-bold text-gray-700">Manage your team members, roles and permissions.</p>
-          </div>
+          <PageHero
+            title="Team"
+            description="Manage your team members, roles and permissions."
+            imageSrc="/images/hero_team.png"
+            imageAlt="Team Hero"
+          />
 
           {/* Tabs */}
           <div className="flex border-b-4 border-black mb-6">

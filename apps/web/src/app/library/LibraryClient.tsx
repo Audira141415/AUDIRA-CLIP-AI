@@ -242,14 +242,14 @@ export default function LibraryClient({ initialVideos }: { initialVideos: any[] 
                   const hasClips = video.clips && video.clips.length > 0;
                   const firstClipThumb = hasClips ? video.clips[0].thumbnailUrl : null;
                   const displayThumb = firstClipThumb?.startsWith('local://') 
-                    ? firstClipThumb.replace('local://', 'http://localhost:3001/') 
+                    ? firstClipThumb.replace('local://', 'http://localhost:3345/') 
                     : firstClipThumb;
                   
                   const isSelected = selectedIds.has(video.id);
 
                   // Preview logic
                   const videoPlayUrl = video.url?.startsWith('local://') 
-                    ? video.url.replace('local://', 'http://localhost:3001/') 
+                    ? video.url.replace('local://', 'http://localhost:3345/') 
                     : (video.url && video.url !== 'pending' ? video.url : null);
 
                   return viewMode === 'GRID' ? (

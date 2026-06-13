@@ -10,6 +10,8 @@ export const metadata: Metadata = {
   description: 'AI-powered video clipping and content repurposing platform.',
 };
 
+import Providers from '@/components/Providers';
+
 export default function RootLayout({
   children,
 }: Readonly<{
@@ -18,7 +20,9 @@ export default function RootLayout({
   return (
     <html lang="en" className={`${inter.variable} ${interTight.variable}`}>
       <body className="bg-background text-black min-h-screen">
-        {children}
+        <Providers>
+          {children}
+        </Providers>
       </body>
     </html>
   );

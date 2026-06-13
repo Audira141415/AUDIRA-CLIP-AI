@@ -167,7 +167,8 @@ export async function retryVideoProcessing(id: string) {
       data: { status: 'PENDING' }
     });
     
-    fetch(`http://localhost:3001/video/process/${id}`, { method: 'POST' })
+    const API_URL = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:3345';
+    fetch(`${API_URL}/video/process/${id}`, { method: 'POST' })
       .catch(e => console.error("Reprocess trigger failed:", e));
 
     revalidatePath('/clipper');

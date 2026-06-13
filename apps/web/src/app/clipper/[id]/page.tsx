@@ -6,8 +6,10 @@ export default async function AIClipper({ params }: { params: Promise<{ id: stri
   let videoData = null;
   let error = null;
 
+  const API_URL = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:3345';
+
   try {
-    const res = await fetch(`http://localhost:3001/video/${resolvedParams.id}`, { cache: 'no-store' });
+    const res = await fetch(`${API_URL}/video/${resolvedParams.id}`, { cache: 'no-store' });
     if (!res.ok) throw new Error("Failed to fetch video");
     videoData = await res.json();
   } catch (err) {
@@ -24,9 +26,9 @@ export default async function AIClipper({ params }: { params: Promise<{ id: stri
     );
   }
 
-  // Convert "local://uploads/filename.mp4" to "http://localhost:3001/uploads/filename.mp4"
+  // Convert "local://uploads/filename.mp4" to "http://localhost:3345/uploads/filename.mp4"
   const videoUrl = videoData.url.startsWith("local://")
-    ? videoData.url.replace("local://", "http://localhost:3001/")
+    ? videoData.url.replace("local://", `${API_URL}/`)
     : videoData.url;
 
   return (

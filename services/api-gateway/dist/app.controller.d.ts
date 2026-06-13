@@ -1,6 +1,6 @@
-import { AppService } from './app.service';
+import { ClientProxy } from '@nestjs/microservices';
 export declare class AppController {
-    private readonly appService;
-    constructor(appService: AppService);
-    getHello(): string;
+    private authClient;
+    constructor(authClient: ClientProxy);
+    getUser(id: string): import("rxjs").Observable<any>;
 }

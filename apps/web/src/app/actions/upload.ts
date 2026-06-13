@@ -73,7 +73,8 @@ export async function confirmUpload(fileName: string, fileKey: string, duration:
 
     // Trigger AI processing in NestJS worker
     try {
-      fetch(`http://localhost:3001/video/process/${video.id}`, { method: 'POST' }).catch(e => console.error("NestJS trigger failed:", e));
+      const API_URL = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:3345';
+      fetch(`${API_URL}/video/process/${video.id}`, { method: 'POST' }).catch(e => console.error("NestJS trigger failed:", e));
     } catch (err) {
       console.error("Failed to trigger processing:", err);
     }

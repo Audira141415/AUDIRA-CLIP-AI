@@ -3,6 +3,7 @@
 import DashboardLayout from "@/components/layout/DashboardLayout";
 import { motion } from 'framer-motion';
 import { ArrowUp, Play, Zap, Smile, Search, Bell, Plus, Video, Clock, ChevronDown } from 'lucide-react';
+import PageHero from "@/components/ui/PageHero";
 
 export default function Dashboard() {
   const stats = [
@@ -42,16 +43,17 @@ export default function Dashboard() {
           </div>
         </div>
 
-        {/* Welcome Header */}
-        <div className="flex justify-between items-end mb-8 border-b-4 border-black pb-4">
-          <div>
-            <h1 className="text-5xl font-heading font-black mb-2 uppercase">Welcome back, John! 👋</h1>
-            <p className="text-black font-bold text-xl bg-secondary inline-block px-2 border-2 border-black">Here's what's happening with your content today.</p>
-          </div>
-          <div className="text-lg text-black font-black border-4 border-black bg-white px-4 py-2 shadow-neu uppercase">
-            MAY 12 - MAY 19, 2026
-          </div>
-        </div>
+        <PageHero
+          title="Welcome back, John! 👋"
+          description="Here's what's happening with your content today."
+          imageSrc="/images/hero_dashboard.png"
+          imageAlt="Dashboard Hero"
+          rightContent={
+            <div className="text-lg text-black font-black border-4 border-black bg-white px-4 py-2 shadow-neu uppercase">
+              MAY 12 - MAY 19, 2026
+            </div>
+          }
+        />
 
         {/* Stats Grid */}
         <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-6 gap-6 mb-12">

@@ -3,6 +3,7 @@
 import { useState, useRef, useEffect } from "react";
 import { useRouter } from "next/navigation";
 import Link from "next/link";
+import { api } from "@/lib/api";
 
 export default function UploaderClient({ queue = [] }: { queue?: any[] }) {
   const [isDragging, setIsDragging] = useState(false);
@@ -37,11 +38,10 @@ export default function UploaderClient({ queue = [] }: { queue?: any[] }) {
   const WORKSPACE_ID = 'f7e53531-8f05-418a-9869-931cf994183a';
 
   useEffect(() => {
-    fetch(`http://localhost:3001/video/library?userId=${USER_ID}&workspaceId=${WORKSPACE_ID}`)
-      .then(res => res.json())
-      .then(data => {
-        if (data && Array.isArray(data)) {
-          setRecentVideos(data.slice(0, 4));
+    api.get(`/video/library?userId=${USER_ID}&workspaceId=${WORKSPACE_ID}`)
+      .then(res => {
+        if (res.data && Array.isArray(res.data)) {
+          setRecentVideos(res.data.slice(0, 4));
         }
       })
       .catch(err => console.error("Failed to load library:", err));
@@ -136,11 +136,9 @@ export default function UploaderClient({ queue = [] }: { queue?: any[] }) {
         ...(topic && { topic })
       }).toString();
       
-      const res = await fetch(`http://localhost:3001/video/import-url?${queryParams}`, {
-        method: "POST"
-      });
-      const data = await res.json();
-      if (res.ok) {
+      const res = await api.post(`/video/import-url?${queryParams}`);
+      const data = res.data;
+      if (res.status === 200 || res.status === 201) {
         if (data && data.video && data.video.id) {
           router.push(`/clipper/${data.video.id}`);
         } else {
@@ -165,39 +163,26 @@ export default function UploaderClient({ queue = [] }: { queue?: any[] }) {
       const formData = new FormData();
       formData.append('file', file);
 
-      const data: any = await new Promise((resolve, reject) => {
-        const xhr = new XMLHttpRequest();
-        const aspectsParam = selectedAspects.length > 0 ? selectedAspects.join(',') : '9:16';
-        const queryParams = new URLSearchParams({
-          userId: USER_ID,
-          workspaceId: WORKSPACE_ID,
-          aspects: aspectsParam,
-          intent: aiIntent,
-          lang: videoLanguage,
-          captions: String(autoCaptions),
-          broll: String(autoBroll)
-        }).toString();
-        
-        xhr.open("POST", `http://localhost:3001/video/upload?${queryParams}`, true);
+      const aspectsParam = selectedAspects.length > 0 ? selectedAspects.join(',') : '9:16';
+      const queryParams = new URLSearchParams({
+        userId: USER_ID,
+        workspaceId: WORKSPACE_ID,
+        aspects: aspectsParam,
+        intent: aiIntent,
+        lang: videoLanguage,
+        captions: String(autoCaptions),
+        broll: String(autoBroll)
+      }).toString();
 
-        xhr.upload.onprogress = (e) => {
-          if (e.lengthComputable) {
+      const res = await api.post(`/video/upload?${queryParams}`, formData, {
+        onUploadProgress: (e) => {
+          if (e.total) {
             const percentComplete = Math.round((e.loaded / e.total) * 100);
             setUploadProgress(percentComplete);
           }
-        };
-
-        xhr.onload = () => {
-          if (xhr.status >= 200 && xhr.status < 300) {
-            resolve(JSON.parse(xhr.responseText));
-          } else {
-            reject(new Error("Upload failed"));
-          }
-        };
-
-        xhr.onerror = () => reject(new Error("Network error"));
-        xhr.send(formData);
+        }
       });
+      const data = res.data;
       
       setUploadProgress(100);
       setTimeout(() => {

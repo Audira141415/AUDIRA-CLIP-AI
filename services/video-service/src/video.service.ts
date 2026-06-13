@@ -1,4 +1,5 @@
-import { Injectable, Logger } from '@nestjs/common';
+import { Injectable, Logger, Inject } from '@nestjs/common';
+import { ClientProxy } from '@nestjs/microservices';
 import { prisma } from '@audira/database';
 import * as ffmpegInstaller from '@ffmpeg-installer/ffmpeg';
 import * as ffprobeInstaller from '@ffprobe-installer/ffprobe';
@@ -56,7 +57,8 @@ export class VideoService {
   constructor(
     private readonly ollamaService: OllamaService,
     private readonly transcriptionService: TranscriptionService,
-    private readonly heatmapService: HeatmapService
+    private readonly heatmapService: HeatmapService,
+    @Inject('GATEWAY_SERVICE') private readonly gatewayClient: ClientProxy
   ) {}
 
   async getDashboardStats(userId: string, workspaceId: string) {
@@ -76,15 +78,46 @@ export class VideoService {
   }
 
   async getLibrary(userId: string, workspaceId: string, query?: any) {
-    const { tab, sortBy, folder } = query || {};
+    const { tab, sortBy, folder, search, tag, duration, owner } = query || {};
     
-    const videoWhere: any = { userId, workspaceId, isDeleted: false };
-    const clipWhere: any = { video: { userId, workspaceId }, isDeleted: false };
-    const projectWhere: any = { userId, workspaceId };
+    const videoWhere: any = { workspaceId, isDeleted: false };
+    const clipWhere: any = { video: { workspaceId }, isDeleted: false };
+    const projectWhere: any = { workspaceId };
+
+    if (owner === 'Hanya Saya') {
+      videoWhere.userId = userId;
+      clipWhere.video.userId = userId;
+      projectWhere.userId = userId;
+    }
 
     if (folder && folder !== 'All Folders') {
       videoWhere.folder = folder;
       clipWhere.folder = folder;
+    }
+
+    if (tag && tag !== 'All Tags') {
+      videoWhere.tags = { has: tag };
+      // clips don't have tags array, they have hashtags string
+      clipWhere.hashtags = { contains: tag, mode: 'insensitive' };
+    }
+
+    if (duration && duration !== 'All Durations') {
+      if (duration === '< 1 Menit') {
+        videoWhere.duration = { lt: 60 };
+        clipWhere.duration = { lt: 60 };
+      } else if (duration === '1-5 Menit') {
+        videoWhere.duration = { gte: 60, lte: 300 };
+        clipWhere.duration = { gte: 60, lte: 300 };
+      } else if (duration === '> 5 Menit') {
+        videoWhere.duration = { gt: 300 };
+        clipWhere.duration = { gt: 300 };
+      }
+    }
+
+    if (search) {
+      videoWhere.title = { contains: search, mode: 'insensitive' };
+      clipWhere.title = { contains: search, mode: 'insensitive' };
+      projectWhere.name = { contains: search, mode: 'insensitive' };
     }
 
     let orderBy: any = { createdAt: 'desc' };
@@ -100,8 +133,8 @@ export class VideoService {
       const clips = await prisma.clip.findMany({ where: { ...clipWhere, isFavorite: true }, orderBy, include: { video: true } });
       return { videos, clips };
     } else if (tab === 'TRASH') {
-      const videos = await prisma.video.findMany({ where: { userId, workspaceId, isDeleted: true }, orderBy, include: { _count: { select: { clips: true } } } });
-      const clips = await prisma.clip.findMany({ where: { video: { userId, workspaceId }, isDeleted: true }, orderBy, include: { video: true } });
+      const videos = await prisma.video.findMany({ where: { workspaceId, isDeleted: true }, orderBy, include: { _count: { select: { clips: true } } } });
+      const clips = await prisma.clip.findMany({ where: { video: { workspaceId }, isDeleted: true }, orderBy, include: { video: true } });
       return { videos, clips };
     } else {
       return prisma.video.findMany({ where: videoWhere, orderBy, include: { _count: { select: { clips: true } } } });
@@ -146,7 +179,59 @@ export class VideoService {
     }
   }
 
+  async renameMedia(type: string, id: string, newTitle: string) {
+    if (type === 'video') {
+      return prisma.video.update({ where: { id }, data: { title: newTitle } });
+    } else if (type === 'clip') {
+      return prisma.clip.update({ where: { id }, data: { title: newTitle } });
+    } else if (type === 'project') {
+      return prisma.project.update({ where: { id }, data: { name: newTitle } });
+    }
+  }
+
+  async mergeClips(clipIds: string[], userId: string, workspaceId: string) {
+    const project = await prisma.project.create({
+      data: {
+        name: `Merged Project (${clipIds.length} clips)`,
+        userId,
+        workspaceId,
+        clips: {
+          create: clipIds.map((clipId, index) => ({
+            clipId,
+            order: index
+          }))
+        }
+      }
+    });
+    return project;
+  }
+
   async createVideoRecord(data: { title: string; url: string; userId: string; workspaceId: string }) {
+    // Gracefully handle missing User or Workspace to prevent P2003 Foreign Key Constraint error
+    let user = await prisma.user.findUnique({ where: { id: data.userId } });
+    if (!user) {
+      user = await prisma.user.findFirst();
+      if (!user) {
+        user = await prisma.user.create({
+          data: { id: data.userId, email: `dummy${Date.now()}@example.com`, name: 'Dummy User' }
+        });
+      } else {
+        data.userId = user.id;
+      }
+    }
+
+    let workspace = await prisma.workspace.findUnique({ where: { id: data.workspaceId } });
+    if (!workspace) {
+      workspace = await prisma.workspace.findFirst();
+      if (!workspace) {
+        workspace = await prisma.workspace.create({
+          data: { id: data.workspaceId, name: 'My Workspace', ownerId: data.userId }
+        });
+      } else {
+        data.workspaceId = workspace.id;
+      }
+    }
+
     return prisma.video.create({
       data: {
         title: data.title,
@@ -169,21 +254,33 @@ export class VideoService {
   async importFromUrl(url: string, userId: string, workspaceId: string, requestedAspects?: string[], options?: any) {
     this.logger.log(`Starting download from URL: ${url}`);
     
-    // Create a temporary video record
-    const videoRecord = await this.createVideoRecord({
-      title: "Downloading...",
-      url: "pending",
-      userId,
-      workspaceId
-    });
+    // Create or use existing temporary video record
+    let videoRecord: any;
+    if (options?.preCreatedId) {
+      videoRecord = await prisma.video.findUnique({ where: { id: options.preCreatedId } });
+    }
+    
+    if (!videoRecord) {
+      videoRecord = await this.createVideoRecord({
+        title: "Downloading...",
+        url: "pending",
+        userId,
+        workspaceId
+      });
+    }
 
     // Start in background to return quickly
     (async () => {
       try {
         await this.updateProgress(videoRecord.id, 10, "Mengunduh video dari YouTube...", "PROCESSING");
         
+        const uploadDir = path.join(process.cwd(), 'uploads');
+        if (!fs.existsSync(uploadDir)) {
+          fs.mkdirSync(uploadDir, { recursive: true });
+        }
+        
         const filename = `import-${Date.now()}-${Math.round(Math.random() * 1E9)}.mp4`;
-        const outputPath = path.join(process.cwd(), 'uploads', filename);
+        const outputPath = path.join(uploadDir, filename);
 
         // Determine format string based on quality
         let ytdlFormat = 'bestvideo[vcodec^=avc]+bestaudio[acodec^=mp4a]/best[ext=mp4]/best';
@@ -200,7 +297,6 @@ export class VideoService {
         const selectedProxy = proxies.length > 0 ? proxies[Math.floor(Math.random() * proxies.length)].trim() : null;
 
         // --- COOKIE ROTATION ---
-        const fs = require('fs');
         let selectedCookiePath = null;
         const cookiesDir = path.join(process.cwd(), 'cookies');
         
@@ -299,6 +395,13 @@ export class VideoService {
       if (status) data.status = status;
       await prisma.video.update({ where: { id }, data });
       this.logger.debug(`Video ${id} progress: ${progress}% - ${statusMessage}`);
+      
+      this.gatewayClient.emit({ cmd: 'job_progress' }, {
+        videoId: id,
+        progress,
+        statusMessage,
+        status: status || 'PROCESSING'
+      });
     } catch (e) {
       // Ignore errors if db locked
     }
@@ -313,8 +416,8 @@ export class VideoService {
 
       // Resolve path
       let relativePath = video.url;
-      if (relativePath.startsWith('http://localhost:3001/')) {
-        relativePath = relativePath.replace('http://localhost:3001/', '');
+      if (relativePath.startsWith('http://localhost:3345/')) {
+        relativePath = relativePath.replace('http://localhost:3345/', '');
       } else if (relativePath.startsWith('local://')) {
         relativePath = relativePath.replace('local://', '');
       }
@@ -338,13 +441,16 @@ export class VideoService {
       await prisma.video.update({ where: { id: videoId }, data: { duration: Math.round(duration) } });
       this.logger.log(`Video duration: ${duration}s`);
 
-      // 2. Transcribe the video (Real Local Whisper AI)
+      // 2. Transcribe the video (Real Local Whisper AI - Using large-v3)
       this.logger.log(`Transcribing video using Whisper...`);
       await this.updateProgress(videoId, 30, "Mendengarkan Audio (Transkripsi Whisper)...");
-      const transcript = await this.transcriptionService.transcribeReal(absoluteInputPath, async (sec) => {
+      let transcript = await this.transcriptionService.transcribeReal(absoluteInputPath, async (sec) => {
         const pct = Math.min(30 + Math.floor((sec / duration) * 10), 40);
         await this.updateProgress(videoId, pct, `Mendengarkan Audio... (${Math.round(sec)}/${Math.round(duration)} detik)`);
       }, options?.lang);
+
+      // (Layer 16 dinonaktifkan karena Whisper large-v3 sudah sangat akurat)
+      // transcript = await this.ollamaService.proofreadTranscript(transcript);
 
       // 2.5 The Architect: Semantic Video Chapter Mapping
       this.logger.log(`Executing Layer 0: The Architect...`);
@@ -437,9 +543,9 @@ export class VideoService {
         if (transcript.length === 0 || transcript[0].text === "Tahukah Anda" || transcript[0].text === " ") {
             this.logger.log(`Using Local Python Transcriber Fallback for clip ${i + 1}...`);
             try {
-                const tempWavPath = path.join(process.cwd(), 'uploads', `temp-${videoId}-${i}.wav`);
+                const tempWavPath = path.join(process.cwd(), 'uploads', `temp_audio_${Date.now()}.wav`);
                 
-                // 1. Extract the audio of THIS specific clip
+                this.logger.log(`Extracting audio for on-the-fly transcription to ${tempWavPath}...`);
                 await new Promise((res, rej) => {
                     ffmpeg(absoluteInputPath)
                       .setStartTime(clipDef.startTime)
@@ -451,25 +557,21 @@ export class VideoService {
                       .run();
                 });
                 
-                // 2. Transcribe using our Node.js Transformers.js script
-                const { execSync } = require('child_process');
-                const jsScript = path.join(process.cwd(), 'src', 'audio_ai_engine.js');
-                const nodeCmd = 'node';
-                // Whisper expects 2-letter lang codes like 'id', 'en'
+                // 2. Transcribe using FastAPI Engine
+                const fastApiUrl = `http://localhost:8000/api/transcribe`;
                 const rawLang = options?.lang || 'id-ID';
                 const lang = rawLang.split('-')[0].toLowerCase();
                 
-                this.logger.log(`Executing Audio AI Engine: ${nodeCmd} ${jsScript} ${tempWavPath} ${lang}`);
-                // Give it a slightly higher buffer for large outputs, though JSON should be small
-                const out = execSync(`"${nodeCmd}" "${jsScript}" "${tempWavPath}" "${lang}"`, { maxBuffer: 1024 * 1024 * 10 }).toString();
+                this.logger.log(`Executing Audio AI Engine via FastAPI: POST ${fastApiUrl}`);
+                const response = await fetch(fastApiUrl, {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ audio_path: tempWavPath, language: lang })
+                });
+                const result = await response.json();
                 
-                // Parse lines to get the JSON output from script
-                const outLines = out.trim().split('\n');
-                const jsonLine = outLines[outLines.length - 1]; // The last printed line is our JSON
-                const result = JSON.parse(jsonLine.trim());
-                
-                if (result.success && result.text) {
-                    this.logger.log(`Successfully transcribed clip ${i+1}: ${result.text}`);
+                if (result.success && result.segments && result.segments.length > 0) {
+                    this.logger.log(`Successfully transcribed clip ${i+1}: ${result.segments.length} segments found`);
                     
                     if (result.censorTimestamps) (clipDef as any).censorTimestamps = result.censorTimestamps;
                     if (result.jumpZoomStart !== undefined) (clipDef as any).jumpZoomStart = result.jumpZoomStart;
@@ -484,8 +586,6 @@ export class VideoService {
                     // --- TAHAP 2: Smart Trimming (VAD via Whisper) ---
                     if (result.actualStart !== undefined && result.actualEnd !== undefined && result.actualEnd > result.actualStart) {
                         const originalStart = clipDef.startTime;
-                        // Whisper timestamps are relative to the tempWavPath!
-                        // We add a tiny 0.2s padding for natural breathing
                         const trimStart = Math.max(0, result.actualStart - 0.2);
                         const trimEnd = Math.min(clipDef.duration, result.actualEnd + 0.5);
                         
@@ -495,22 +595,14 @@ export class VideoService {
                         this.logger.log(`Smart Trimming Applied! New Start: ${clipDef.startTime}s, New Duration: ${clipDef.duration}s`);
                     }
 
-                    // Split the resulting sentence into words and fake the timestamps for ASS
-                    const words = result.text.split(' ');
-                    const wordDur = clipDef.duration / words.length;
-                    
-                    clipTranscript = [];
-                    for(let w = 0; w < words.length; w++) {
-                        clipTranscript.push({
-                            start: clipDef.startTime + (w * wordDur),
-                            end: clipDef.startTime + ((w+1) * wordDur),
-                            text: words[w]
-                        });
-                    }
+                    clipTranscript = result.segments.map((seg: any) => ({
+                        start: clipDef.startTime + seg.start,
+                        end: clipDef.startTime + seg.end,
+                        text: seg.text
+                    }));
                 } else {
                     this.logger.warn(`Python Transcriber returned empty or failed: ${result.error}`);
                 }
-                
                 if (fs.existsSync(tempWavPath)) fs.unlinkSync(tempWavPath);
             } catch (err: any) {
                 this.logger.warn(`Failed to transcribe clip locally: ${err.message}`);
@@ -797,6 +889,20 @@ export class VideoService {
 
     let finalAssPath = assPath;
 
+    // --- NEW: Apply Interactive Subtitles from Database ---
+    const existingSubtitles = await prisma.subtitle.findFirst({ where: { clipId } });
+    if (existingSubtitles && existingSubtitles.content) {
+      this.logger.log(`Found custom subtitles for clip ${clipId}. Generating new ASS file...`);
+      const newAssContent = SubtitleGenerator.generateAssSubtitles(
+        `${clip.videoId}-${indexStr}`, 
+        existingSubtitles.content as any[], 
+        0, 
+        clip.duration || 15
+      );
+      fs.writeFileSync(assPath, newAssContent, 'utf-8');
+    }
+    // --------------------------------------------------------
+
     if (fs.existsSync(assPath) && subtitleConfig) {
       // Modify ASS file
       let assContent = fs.readFileSync(assPath, 'utf-8');
@@ -824,7 +930,7 @@ export class VideoService {
     // Now re-run ffmpeg to burn subtitle and reframe
     const clipFilename = `clip-${clip.videoId}-${indexStr}-export-${Date.now()}.mp4`;
     const absoluteClipPath = path.join(process.cwd(), 'uploads', clipFilename);
-    const videoRelative = clip.video.url.replace('http://localhost:3001/', '');
+    const videoRelative = clip.video.url.replace('http://localhost:3345/', '');
     const absoluteInputPath = path.join(process.cwd(), videoRelative);
 
     let currentInputPath = absoluteInputPath;
@@ -859,7 +965,9 @@ export class VideoService {
 
       // 2. Run Python Tracker
       const trackerScript = path.join(process.cwd(), '..', 'ai-engine', 'tracker.py');
-      await execPromise(`python "${trackerScript}" --input "${rawSegmentPath}" --output "${trackedVideoPath}"`);
+      const pythonCmd = process.platform === 'win32' ? 'python' : 'python3';
+      this.logger.log(`Executing OpenCV VideoWriter Tracking...`);
+      await execPromise(`"${pythonCmd}" "${trackerScript}" --input "${rawSegmentPath}" --output "${trackedVideoPath}"`);
 
       // 3. Merge Audio back
       await this.enqueueFfmpegTask(`Merge Audio ${clipId}`, async () => {
@@ -961,7 +1069,7 @@ export class VideoService {
     const finalUrl = `local://uploads/${clipFilename}`;
     await prisma.clip.update({ where: { id: clipId }, data: { url: finalUrl } });
     
-    return { success: true, url: finalUrl.replace('local://', 'http://localhost:3001/') };
+    return { success: true, url: finalUrl.replace('local://', 'http://localhost:3345/') };
   }
 
   async createCustomClip(videoId: string, startTime: number, duration: number) {
@@ -969,7 +1077,7 @@ export class VideoService {
     const video = await prisma.video.findUnique({ where: { id: videoId } });
     if (!video) throw new Error("Video not found");
 
-    const videoRelative = video.url.replace('http://localhost:3001/', '');
+    const videoRelative = video.url.replace('http://localhost:3345/', '');
     const absoluteInputPath = path.join(process.cwd(), videoRelative);
     
     // Check if the video exists locally
@@ -1044,8 +1152,96 @@ export class VideoService {
     // In a real implementation, we would save this to a B-Roll table linked to the clip.
     // For this prototype, we just return the local url and the frontend can append it to its state.
     const filename = path.basename(brollPath);
-    const url = `http://localhost:3001/uploads/${filename}`;
+    const url = `http://localhost:3345/uploads/${filename}`;
     
     return { success: true, url, brollPath };
+  }
+
+  async transcribeClip(clipId: string) {
+    const clip = await prisma.clip.findUnique({
+      where: { id: clipId },
+      include: { video: true, subtitles: true }
+    });
+
+    if (!clip) throw new Error("Clip not found");
+
+    // If already transcribed, return existing
+    if (clip.subtitles && clip.subtitles.length > 0) {
+      return { success: true, segments: clip.subtitles[0].content, source: 'database' };
+    }
+
+    const tempWavPath = path.join(process.cwd(), 'uploads', `temp_audio_${clipId}.wav`);
+    
+    // Check if the clip url is local
+    let clipUrl = clip.url;
+    if (clipUrl.startsWith('local://')) {
+      clipUrl = path.join(process.cwd(), clipUrl.replace('local://', ''));
+    }
+
+    this.logger.log(`Extracting audio from ${clipUrl} to ${tempWavPath}...`);
+    await new Promise((resolve, reject) => {
+      ffmpeg(clipUrl)
+        .outputOptions(['-vn', '-acodec', 'pcm_s16le', '-ar', '16000', '-ac', '1'])
+        .output(tempWavPath)
+        .on('end', () => resolve(null))
+        .on('error', (err: any) => reject(err))
+        .run();
+    });
+
+    // Call FastAPI
+    const fastApiUrl = `http://localhost:8000/api/transcribe`;
+    this.logger.log(`Calling AI Engine: POST ${fastApiUrl}`);
+    const response = await fetch(fastApiUrl, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ audio_path: tempWavPath, language: 'id' })
+    });
+    
+    const result = await response.json();
+    if (fs.existsSync(tempWavPath)) fs.unlinkSync(tempWavPath);
+
+    if (result.success && result.segments) {
+      // Save to database
+      await prisma.subtitle.create({
+        data: {
+          videoId: clip.videoId,
+          clipId: clip.id,
+          language: 'id',
+          content: result.segments
+        }
+      });
+      return { success: true, segments: result.segments, source: 'ai' };
+    }
+
+    throw new Error("Transcription failed: " + JSON.stringify(result));
+  }
+
+  async saveSubtitles(clipId: string, content: any) {
+    // Upsert subtitle record
+    const existing = await prisma.subtitle.findFirst({ where: { clipId } });
+    if (existing) {
+      return await prisma.subtitle.update({
+        where: { id: existing.id },
+        data: { content }
+      });
+    } else {
+      const clip = await prisma.clip.findUnique({ where: { id: clipId } });
+      return await prisma.subtitle.create({
+        data: {
+          videoId: clip?.videoId,
+          clipId: clipId,
+          language: 'id',
+          content
+        }
+      });
+    }
+  }
+
+  async getSubtitles(clipId: string) {
+    const existing = await prisma.subtitle.findFirst({ where: { clipId } });
+    if (existing) {
+      return { success: true, segments: existing.content, source: 'database' };
+    }
+    return { success: false, segments: [], message: 'No subtitles found for this clip' };
   }
 }

@@ -1,0 +1,11 @@
+{
+    "benchmark_date": "2026-06-12 17:57:17",
+    "total_time_seconds": 7.01,
+    "average_cpu_usage_percent": 50.0,
+    "average_ram_usage_percent": 59.8,
+    "metrics": {
+        "model_load_time_seconds": 2.0,
+        "inference_time_seconds": 5.01
+    },
+    "status": "SUCCESS"
+}

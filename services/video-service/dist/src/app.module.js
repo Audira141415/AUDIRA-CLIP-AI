@@ -9,6 +9,8 @@ Object.defineProperty(exports, "__esModule", { value: true });
 exports.AppModule = void 0;
 const common_1 = require("@nestjs/common");
 const serve_static_1 = require("@nestjs/serve-static");
+const bullmq_1 = require("@nestjs/bullmq");
+const microservices_1 = require("@nestjs/microservices");
 const path_1 = require("path");
 const app_controller_1 = require("./app.controller");
 const app_service_1 = require("./app.service");
@@ -19,6 +21,8 @@ const project_service_1 = require("./project.service");
 const ollama_service_1 = require("./ollama.service");
 const transcription_service_1 = require("./transcription.service");
 const heatmap_service_1 = require("./heatmap.service");
+const video_queue_1 = require("./queue/video.queue");
+const video_processor_1 = require("./queue/video.processor");
 let AppModule = class AppModule {
 };
 exports.AppModule = AppModule;
@@ -29,9 +33,40 @@ exports.AppModule = AppModule = __decorate([
                 rootPath: (0, path_1.join)(process.cwd(), 'uploads'),
                 serveRoot: '/uploads',
             }),
+            bullmq_1.BullModule.forRoot({
+                connection: {
+                    host: process.env.REDIS_HOST || 'localhost',
+                    port: parseInt(process.env.REDIS_PORT || '6379'),
+                },
+            }),
+            bullmq_1.BullModule.registerQueue({
+                name: 'video-rendering',
+            }),
+            bullmq_1.BullModule.registerQueue({
+                name: 'video-processing',
+            }),
+            microservices_1.ClientsModule.register([
+                {
+                    name: 'GATEWAY_SERVICE',
+                    transport: microservices_1.Transport.REDIS,
+                    options: {
+                        host: process.env.REDIS_HOST || 'localhost',
+                        port: parseInt(process.env.REDIS_PORT || '6379'),
+                    },
+                },
+            ]),
         ],
         controllers: [app_controller_1.AppController, video_controller_1.VideoController, project_controller_1.ProjectController],
-        providers: [app_service_1.AppService, video_service_1.VideoService, project_service_1.ProjectService, ollama_service_1.OllamaService, transcription_service_1.TranscriptionService, heatmap_service_1.HeatmapService],
+        providers: [
+            app_service_1.AppService,
+            video_service_1.VideoService,
+            project_service_1.ProjectService,
+            ollama_service_1.OllamaService,
+            transcription_service_1.TranscriptionService,
+            heatmap_service_1.HeatmapService,
+            video_queue_1.VideoQueueProducer,
+            video_processor_1.VideoProcessor
+        ],
     })
 ], AppModule);
 //# sourceMappingURL=app.module.js.map

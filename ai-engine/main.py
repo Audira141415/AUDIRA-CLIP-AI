@@ -12,15 +12,16 @@ def main():
     
     args = parser.parse_args()
     
-    print(f"Initializing WhisperModel (Model: tiny, Device: CPU, Compute Type: int8)...")
-    # Menggunakan model 'tiny' agar ringan dan cepat untuk simulasi
-    model = WhisperModel("tiny", device="cpu", compute_type="int8")
+    print(f"Initializing WhisperModel (Model: large-v3, Device: CPU, Compute Type: int8)...")
+    # Menggunakan model 'large-v3' untuk akurasi tingkat tinggi (kualitas studio)
+    model = WhisperModel("large-v3", device="cpu", compute_type="int8")
     
     print(f"Transcribing {args.audio} with target language '{args.language}'...")
     start_time = time.time()
     
-    # Transcribe audio
-    segments, info = model.transcribe(args.audio, beam_size=5, language=args.language, word_timestamps=False)
+    # Transcribe audio dengan prompt ejaan
+    prompt = "Berikut adalah transkripsi bahasa Indonesia yang dieja dengan benar, menggunakan kapitalisasi yang tepat, tanpa disingkat."
+    segments, info = model.transcribe(args.audio, beam_size=5, language=args.language, word_timestamps=False, initial_prompt=prompt)
     
     print("Transcription started, detected language '%s' with probability %f" % (info.language, info.language_probability))
     

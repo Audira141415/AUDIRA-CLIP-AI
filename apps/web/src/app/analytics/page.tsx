@@ -2,6 +2,7 @@
 
 import DashboardLayout from "@/components/layout/DashboardLayout";
 import { Play, Clock, Video, Users, Download, Calendar, ArrowUpRight, ArrowDownRight, Globe2, Monitor, Smartphone, Monitor as Tv, Tablet, Laptop, BarChart3, TrendingUp, ChevronRight } from "lucide-react";
+import PageHero from "@/components/ui/PageHero";
 
 export default function AnalyticsPage() {
   const metrics = [
@@ -60,21 +61,22 @@ export default function AnalyticsPage() {
 
         <div className="relative z-10 max-w-7xl mx-auto space-y-8">
           
-          {/* Header */}
-          <div className="flex flex-col md:flex-row justify-between items-start md:items-end gap-4">
-            <div>
-              <h1 className="text-4xl font-black uppercase mb-2">Analytics</h1>
-              <p className="font-bold text-gray-700">Track your content performance and team productivity.</p>
-            </div>
-            <div className="flex items-center gap-4">
-              <button className="flex items-center gap-2 bg-white border-4 border-black px-4 py-2 font-black uppercase text-sm shadow-[4px_4px_0px_0px_rgba(0,0,0,1)] hover:translate-y-[2px] hover:translate-x-[2px] hover:shadow-[2px_2px_0px_0px_rgba(0,0,0,1)] transition-all">
-                <Calendar className="w-4 h-4" strokeWidth={3} /> May 1 - May 31, 2026
-              </button>
-              <button className="flex items-center gap-2 bg-[#F5A623] border-4 border-black px-4 py-2 font-black uppercase text-sm shadow-[4px_4px_0px_0px_rgba(0,0,0,1)] hover:translate-y-[2px] hover:translate-x-[2px] hover:shadow-[2px_2px_0px_0px_rgba(0,0,0,1)] transition-all">
-                <Download className="w-4 h-4" strokeWidth={3} /> Export Report
-              </button>
-            </div>
-          </div>
+          <PageHero
+            title="Analytics"
+            description="Track your content performance and team productivity."
+            imageSrc="/images/hero_analytics.png"
+            imageAlt="Analytics Hero"
+            rightContent={
+              <>
+                <button className="flex items-center gap-2 bg-white border-4 border-black px-4 py-2 font-black uppercase text-sm shadow-[4px_4px_0px_0px_rgba(0,0,0,1)] hover:translate-y-[2px] hover:translate-x-[2px] hover:shadow-[2px_2px_0px_0px_rgba(0,0,0,1)] transition-all">
+                  <Calendar className="w-4 h-4" strokeWidth={3} /> May 1 - May 31, 2026
+                </button>
+                <button className="flex items-center gap-2 bg-[#F5A623] border-4 border-black px-4 py-2 font-black uppercase text-sm shadow-[4px_4px_0px_0px_rgba(0,0,0,1)] hover:translate-y-[2px] hover:translate-x-[2px] hover:shadow-[2px_2px_0px_0px_rgba(0,0,0,1)] transition-all">
+                  <Download className="w-4 h-4" strokeWidth={3} /> Export Report
+                </button>
+              </>
+            }
+          />
 
           {/* Tabs */}
           <div className="flex border-b-4 border-black overflow-x-auto no-scrollbar">

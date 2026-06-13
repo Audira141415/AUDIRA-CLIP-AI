@@ -5,27 +5,26 @@ echo          INITIALIZING AUDIRA-CLIP-AI PLATFORM
 echo =======================================================
 echo.
 
-echo [1/3] Starting Docker Services (PostgreSQL & Redis)...
+echo [1/4] Cleaning up existing processes (Mencegah Crash Port)...
+call npx -y kill-port 3344 3000 3345 8000 >nul 2>&1
+echo.
+
+echo [2/4] Starting Docker Services (PostgreSQL & Redis)...
 docker-compose up -d
 echo.
 
-echo [2/3] Checking Port Allocations...
+echo [3/4] Starting AI Engine (FastAPI)...
 echo -------------------------------------------------------
-echo [Database] PostgreSQL       : Port 5432
-echo [Cache/MQ] Redis            : Port 6379
-echo [Frontend] Next.js Web App  : Port 3344
-echo [Backend]  API Gateway      : Port 3000
-echo [Backend]  Billing Service  : Port 3001 (If configured)
-echo [Backend]  Auth/AI/Video/Render : Connects via Redis TCP (No Port)
-echo -------------------------------------------------------
+start "AI Engine (Whisper)" cmd /k "cd ai-engine && run.bat"
+echo AI Engine started on port 8000
 echo.
 
-echo [3/3] Starting Turborepo (Frontend & Microservices)...
-echo Server sedang di-booting. Browser akan terbuka otomatis dalam 8 detik...
-echo Tekan CTRL+C di jendela ini untuk menghentikan log server.
+echo [4/4] Starting Turborepo (Frontend & Microservices)...
+echo Server sedang di-booting. Browser akan terbuka otomatis setelah semua sistem siap...
+echo Tekan CTRL+C di jendela ini untuk menghentikan semua server.
 echo.
 
-:: Menjalankan perintah timer di background untuk membuka browser otomatis
-start /b cmd /c "timeout /t 8 >nul && start http://localhost:3344"
+:: Menjalankan perintah timer pintar di background untuk mengecek kesehatan komponen sebelum membuka browser
+start /b powershell -Command "$ErrorActionPreference = 'SilentlyContinue'; Write-Host '[SMART WAIT] Menunggu NestJS dan Next.js (Port 3345/3344)...'; while((Invoke-WebRequest -Uri http://localhost:3345/video/health -UseBasicParsing).StatusCode -ne 200 -or (Invoke-WebRequest -Uri http://localhost:3344/api/health -UseBasicParsing).StatusCode -ne 200) { Start-Sleep -Seconds 3 }; Write-Host '[SMART WAIT] Menunggu AI Engine memuat model Whisper (Bisa memakan waktu 10-30 detik)...'; while((Invoke-WebRequest -Uri http://localhost:8000/health -UseBasicParsing).StatusCode -ne 200) { Start-Sleep -Seconds 3 }; Write-Host '[SMART WAIT] Semua sistem hijau! Membuka browser...'; Start-Sleep -Seconds 1; Start-Process 'http://localhost:3344'"
 
 pnpm run dev

@@ -1,14 +1,27 @@
 import { Controller, Post, Param, Get, Query, UseInterceptors, UploadedFile, BadRequestException, Body } from '@nestjs/common';
 import { FileInterceptor } from '@nestjs/platform-express';
+import { ApiTags, ApiOperation } from '@nestjs/swagger';
 import { VideoService } from './video.service';
+import { VideoQueueProducer } from './queue/video.queue';
 import { diskStorage } from 'multer';
 import { extname } from 'path';
 
+@ApiTags('Video')
 @Controller('video')
 export class VideoController {
-  constructor(private readonly videoService: VideoService) {}
+  constructor(
+    private readonly videoService: VideoService,
+    private readonly queueProducer: VideoQueueProducer
+  ) {}
+
+  @Get('health')
+  @ApiOperation({ summary: 'Health check endpoint' })
+  healthCheck() {
+    return { status: 'ok', service: 'video-service' };
+  }
 
   @Get('stats')
+  @ApiOperation({ summary: 'Get video dashboard statistics' })
   async getStats(@Query('userId') userId: string, @Query('workspaceId') workspaceId: string) {
     if (!userId || !workspaceId) throw new BadRequestException('userId and workspaceId are required');
     return this.videoService.getDashboardStats(userId, workspaceId);
@@ -20,10 +33,14 @@ export class VideoController {
     @Query('workspaceId') workspaceId: string,
     @Query('tab') tab?: string,
     @Query('sortBy') sortBy?: string,
-    @Query('folder') folder?: string
+    @Query('folder') folder?: string,
+    @Query('search') search?: string,
+    @Query('tag') tag?: string,
+    @Query('duration') duration?: string,
+    @Query('owner') owner?: string
   ) {
     if (!userId || !workspaceId) throw new BadRequestException('userId and workspaceId are required');
-    return this.videoService.getLibrary(userId, workspaceId, { tab, sortBy, folder });
+    return this.videoService.getLibrary(userId, workspaceId, { tab, sortBy, folder, search, tag, duration, owner });
   }
 
   @Post('favorite/:type/:id')
@@ -46,10 +63,30 @@ export class VideoController {
     return this.videoService.deletePermanently(type, id);
   }
 
+  @Post('rename/:type/:id')
+  async renameMedia(@Param('type') type: string, @Param('id') id: string, @Body('title') title: string) {
+    if (!title) throw new BadRequestException('title is required');
+    return this.videoService.renameMedia(type, id, title);
+  }
+
+  @Post('merge')
+  async mergeClips(@Body('clipIds') clipIds: string[], @Query('userId') userId: string, @Query('workspaceId') workspaceId: string) {
+    if (!clipIds || !clipIds.length) throw new BadRequestException('clipIds are required');
+    if (!userId || !workspaceId) throw new BadRequestException('userId and workspaceId are required');
+    return this.videoService.mergeClips(clipIds, userId, workspaceId);
+  }
+
   @Post('upload')
+  @ApiOperation({ summary: 'Upload a new video file' })
   @UseInterceptors(FileInterceptor('file', {
     storage: diskStorage({
-      destination: './uploads',
+      destination: (req, file, cb) => {
+        const uploadPath = './uploads';
+        if (!require('fs').existsSync(uploadPath)) {
+          require('fs').mkdirSync(uploadPath, { recursive: true });
+        }
+        cb(null, uploadPath);
+      },
       filename: (req, file, cb) => {
         const uniqueSuffix = Date.now() + '-' + Math.round(Math.random() * 1E9);
         cb(null, `${file.fieldname}-${uniqueSuffix}${extname(file.originalname)}`);
@@ -72,15 +109,15 @@ export class VideoController {
 
     const videoRecord = await this.videoService.createVideoRecord({
       title: file.originalname,
-      url: `http://localhost:3001/uploads/${file.filename}`,
+      url: `http://localhost:3345/uploads/${file.filename}`,
       userId,
       workspaceId
     });
 
     const aspects = aspectsStr ? aspectsStr.split(',') : undefined;
 
-    // Start background processing
-    this.videoService.processVideo(videoRecord.id, aspects, { intent, lang, captions, broll, layoutMode });
+    // Start background processing via Queue
+    this.queueProducer.addProcessJob(videoRecord.id, aspects, { intent, lang, captions, broll, layoutMode });
 
     return {
       success: true,
@@ -92,7 +129,7 @@ export class VideoController {
   @Post('process/:id')
   async processVideo(@Param('id') id: string, @Query('aspects') aspectsStr?: string, @Query('intent') intent?: string) {
     const aspects = aspectsStr ? aspectsStr.split(',') : undefined;
-    this.videoService.processVideo(id, aspects, { intent });
+    this.queueProducer.addProcessJob(id, aspects, { intent });
     return { success: true, message: "Processing started" };
   }
 
@@ -118,9 +155,20 @@ export class VideoController {
 
     const aspects = aspectsStr ? aspectsStr.split(',') : undefined;
 
-    // This will start the download and processing in the background
-    const videoRecord = await this.videoService.importFromUrl(url, userId, workspaceId, aspects, { 
-      intent, lang, captions, broll, quality, timeStart, timeEnd, clipLength, layoutMode, topic 
+    // This will start the download and processing in the background via Queue
+    
+    // First create a pending record so we can return quickly
+    const videoRecord = await this.videoService.createVideoRecord({
+      title: "Menunggu Antrean...",
+      url: "pending",
+      userId,
+      workspaceId
+    });
+
+    this.queueProducer.addImportJob(url, userId, workspaceId, aspects, { 
+      intent, lang, captions, broll, quality, timeStart, timeEnd, clipLength, layoutMode, topic,
+      // Pass the pre-created ID so the worker can update it
+      preCreatedId: videoRecord.id 
     });
 
     return {
@@ -131,6 +179,7 @@ export class VideoController {
   }
 
   @Post('clip/:id/export')
+  @ApiOperation({ summary: 'Export and render a generated clip' })
   async exportClip(
     @Param('id') clipId: string,
     @Body() body: { subtitleConfig: any; reframingMode: string }
@@ -164,5 +213,23 @@ export class VideoController {
   ) {
     if (!clipId || !body.keyword) throw new BadRequestException('clipId and keyword are required');
     return this.videoService.generateBRollForClip(clipId, body.keyword, body.duration);
+  }
+
+  @Post('clip/:id/transcribe')
+  async transcribeClip(@Param('id') clipId: string) {
+    if (!clipId) throw new BadRequestException('clipId is required');
+    return this.videoService.transcribeClip(clipId);
+  }
+
+  @Get('clip/:id/subtitles')
+  async getSubtitles(@Param('id') clipId: string) {
+    if (!clipId) throw new BadRequestException('clipId is required');
+    return this.videoService.getSubtitles(clipId);
+  }
+
+  @Post('clip/:id/subtitles')
+  async saveSubtitles(@Param('id') clipId: string, @Body() content: any) {
+    if (!clipId || !content) throw new BadRequestException('clipId and content are required');
+    return this.videoService.saveSubtitles(clipId, content);
   }
 }
