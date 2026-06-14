@@ -311,7 +311,11 @@ cd apps/web && pnpm dev        # Frontend: http://localhost:3000
 cd services/api-gateway && pnpm dev  # API: http://localhost:4000
 ```
 
-### 7. Jalankan AI Engine (Opsional)
+### 7. Jalankan AI Engine & Kebutuhan Model AI
+
+Untuk mencegah membengkaknya ukuran repositori, **Model AI (seperti model Whisper yang berukuran besar hingga ~3GB) TIDAK DISERTAKAN dalam repository ini**.
+
+Ketika Anda menjalankan *AI Engine* pertama kali, sistem (`faster-whisper`) akan secara otomatis mengunduh model dari sumber resminya (Hugging Face) dan menyimpannya di folder `ai-engine/models/`. Pastikan Anda memiliki koneksi internet yang stabil saat pertama kali memproses video.
 
 ```bash
 cd ai-engine

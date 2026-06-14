@@ -3,7 +3,7 @@ generator client {
 }
 
 datasource db {
-  provider = "postgresql"
+  provider = "sqlite"
   url      = env("DATABASE_URL")
 }
 
@@ -37,7 +37,7 @@ model WorkspaceMember {
   id          String   @id @default(uuid())
   userId      String
   workspaceId String
-  role        Role     @default(MEMBER)
+  role        String   @default("MEMBER")
   createdAt   DateTime @default(now())
 
   user      User      @relation(fields: [userId], references: [id], onDelete: Cascade)
@@ -46,24 +46,20 @@ model WorkspaceMember {
   @@unique([userId, workspaceId])
 }
 
-enum Role {
-  OWNER
-  ADMIN
-  MEMBER
-}
+// Enums mapped to Strings for SQLite compatibility
 
 model Video {
   id       String      @id @default(uuid())
   title    String
   url      String
   duration Float
-  status   VideoStatus @default(PENDING)
+  status   String @default("PENDING")
   progress Int         @default(0)
   statusMessage String?
 
   userId      String
   workspaceId String
-  tags        String[] @default([])
+  tags        String   @default("")
   folder      String?  @default("Uncategorized")
   isFavorite  Boolean  @default(false)
   isDeleted   Boolean  @default(false)
@@ -77,12 +73,7 @@ model Video {
   subtitles Subtitle[]
 }
 
-enum VideoStatus {
-  PENDING
-  PROCESSING
-  READY
-  FAILED
-}
+// VideoStatus mapped to String
 
 model Clip {
   id       String @id @default(uuid())
@@ -127,7 +118,7 @@ model Project {
   name        String
   userId      String
   workspaceId String
-  status      ProjectStatus @default(DRAFT)
+  status      String        @default("DRAFT")
 
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
@@ -149,11 +140,7 @@ model ProjectClip {
   @@unique([projectId, clipId])
 }
 
-enum ProjectStatus {
-  DRAFT
-  IN_PROGRESS
-  EXPORTED
-}
+// ProjectStatus mapped to String
 
 // === NEWLY ADDED MODELS === //
 
@@ -162,7 +149,7 @@ model Subtitle {
   videoId     String?
   clipId      String?
   language    String   @default("id") // id, en, ja, zh, ar
-  content     Json     // The actual VTT/SRT or structured JSON data
+  content     String     // The actual VTT/SRT or structured JSON data (Stored as stringified JSON in SQLite)
   createdAt   DateTime @default(now())
   updatedAt   DateTime @updatedAt
 
@@ -170,17 +157,12 @@ model Subtitle {
   clip        Clip?    @relation(fields: [clipId], references: [id], onDelete: Cascade)
 }
 
-enum RenderStatus {
-  QUEUED
-  PROCESSING
-  COMPLETED
-  FAILED
-}
+// RenderStatus mapped to String
 
 model RenderJob {
   id          String       @id @default(uuid())
   clipId      String
-  status      RenderStatus @default(QUEUED)
+  status      String       @default("QUEUED")
   progress    Int          @default(0) // 0-100
   outputUrl   String?
   errorMessage String?
@@ -190,17 +172,12 @@ model RenderJob {
   clip        Clip         @relation(fields: [clipId], references: [id], onDelete: Cascade)
 }
 
-enum Plan {
-  STARTER
-  PRO
-  BUSINESS
-  ENTERPRISE
-}
+// Plan mapped to String
 
 model Subscription {
   id               String   @id @default(uuid())
   workspaceId      String
-  plan             Plan     @default(STARTER)
+  plan             String     @default("STARTER")
   stripeCustomerId String?
   stripeSubId      String?
   status           String   @default("active") // active, past_due, canceled

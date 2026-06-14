@@ -131,9 +131,9 @@ let TranscriptionService = TranscriptionService_1 = class TranscriptionService {
         try {
             const baseId = crypto.randomBytes(4).toString('hex');
             const outputJson = path.join(process.cwd(), 'uploads', `transcription-${baseId}.json`);
-            const scriptPath = path.join(process.cwd(), '..', 'ai-engine', 'main.py');
+            const scriptPath = path.join(process.cwd(), '..', '..', 'ai-engine', 'main.py');
             this.logger.log(`Attempting to run Python AI Engine for Word-Level Diarization...`);
-            const pythonCmd = process.platform === 'win32' ? 'python' : 'python3';
+            const pythonCmd = process.platform === 'win32' ? path.join(process.cwd(), '..', '..', 'ai-engine', 'venv', 'Scripts', 'python.exe') : path.join(process.cwd(), '..', '..', 'ai-engine', 'venv', 'bin', 'python');
             const pythonArgs = [scriptPath, '--audio', videoPath, '--out', outputJson];
             if (lang) {
                 const langCode = lang.toLowerCase().includes('english') ? 'en' : 'id';

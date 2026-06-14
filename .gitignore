@@ -56,3 +56,13 @@ Thumbs.db
 
 # PENGECUALIAN (Jika kelak Anda butuh menaruh aset logo/demo resmi di web):
 # Anda bisa menggunakan perintah `git add -f nama-file` untuk menembus rule ini secara sadar.
+
+# =======================================================
+# AI Models, Virtual Environments, and Databases
+# =======================================================
+ai-engine/models/
+ai-engine/venv/
+ai-engine/__pycache__/
+database/*.db
+database/prisma/*.db
+yt-short/

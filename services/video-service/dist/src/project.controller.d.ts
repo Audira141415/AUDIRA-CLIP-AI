@@ -52,7 +52,7 @@ export declare class ProjectController {
             id: string;
             userId: string;
             workspaceId: string;
-            status: import("@prisma/client").$Enums.ProjectStatus;
+            status: string;
             createdAt: Date;
             updatedAt: Date;
             name: string;
@@ -101,7 +101,7 @@ export declare class ProjectController {
         id: string;
         userId: string;
         workspaceId: string;
-        status: import("@prisma/client").$Enums.ProjectStatus;
+        status: string;
         createdAt: Date;
         updatedAt: Date;
         name: string;
@@ -149,7 +149,7 @@ export declare class ProjectController {
         id: string;
         userId: string;
         workspaceId: string;
-        status: import("@prisma/client").$Enums.ProjectStatus;
+        status: string;
         createdAt: Date;
         updatedAt: Date;
         name: string;

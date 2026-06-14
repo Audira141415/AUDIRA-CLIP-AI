@@ -22,12 +22,39 @@ export default function CopilotPage() {
   const { videos, fetchVideos } = useVideoStore();
   const [selectedVideoId, setSelectedVideoId] = useState<string>('');
   
+  // Ollama Models State
+  const [availableModels, setAvailableModels] = useState<any[]>([]);
+  const [selectedModel, setSelectedModel] = useState<string>('');
+
   useEffect(() => {
     fetchVideos();
+    // Fetch Ollama models
+    fetch('/api/ai/models')
+      .then(res => res.json())
+      .then(data => {
+        if (data.success && data.models.length > 0) {
+          setAvailableModels(data.models);
+          // Coba baca dari localStorage dulu
+          const savedModel = localStorage.getItem('audira_selected_llm');
+          
+          if (savedModel && data.models.some((m: any) => m.name === savedModel)) {
+            setSelectedModel(savedModel);
+          } else {
+            setSelectedModel(data.models[0].name); // Select first model by default
+          }
+        }
+      })
+      .catch(err => console.error("Ollama API Error:", err));
   }, [fetchVideos]);
 
+  // Fungsi untuk menyimpan pilihan
+  const handleModelChange = (modelName: string) => {
+    setSelectedModel(modelName);
+    localStorage.setItem('audira_selected_llm', modelName);
+  };
+
   const { messages, input, handleInputChange, handleSubmit, isLoading } = useChat({
-    body: { videoId: selectedVideoId }
+    body: { videoId: selectedVideoId, modelName: selectedModel }
   });
   const messagesEndRef = useRef<HTMLDivElement>(null);
 
@@ -264,11 +291,19 @@ export default function CopilotPage() {
             
             <div className="space-y-5">
               <div>
-                <label className="block text-xs font-black uppercase text-gray-500 mb-2">AI Model</label>
-                <select className="w-full bg-[#FAFAFA] border-2 border-black p-2 font-bold outline-none cursor-pointer focus:border-[#F5A623] shadow-[2px_2px_0px_0px_rgba(0,0,0,1)]">
-                  <option>Audira AI v1</option>
-                  <option>DeepSeek R1</option>
-                  <option>Qwen 2.5</option>
+                <label className="block text-xs font-black uppercase text-gray-500 mb-2">Local LLM (Ollama)</label>
+                <select 
+                  value={selectedModel}
+                  onChange={(e) => handleModelChange(e.target.value)}
+                  className="w-full bg-[#FAFAFA] border-2 border-black p-2 font-bold outline-none cursor-pointer focus:border-[#F5A623] shadow-[2px_2px_0px_0px_rgba(0,0,0,1)]"
+                >
+                  {availableModels.length === 0 ? (
+                    <option value="" disabled>Memuat AI Lokal...</option>
+                  ) : (
+                    availableModels.map(m => (
+                      <option key={m.name} value={m.name}>{m.name}</option>
+                    ))
+                  )}
                 </select>
               </div>
 

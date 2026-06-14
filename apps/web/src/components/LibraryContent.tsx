@@ -170,8 +170,30 @@ export default function LibraryContent({ activeTab }: { activeTab: string }) {
               <Link href="/upload" className="flex items-center gap-2 bg-white hover:bg-secondary border-4 border-black shadow-neu hover:translate-y-[-2px] hover:translate-x-[-2px] px-6 py-3 font-black uppercase text-lg transition-all">
                 Upload <ChevronDown className="w-5 h-5" strokeWidth={3} />
               </Link>
-              <button className="flex items-center gap-2 bg-primary hover:bg-white border-4 border-black shadow-neu hover:translate-y-[-2px] hover:translate-x-[-2px] px-6 py-3 font-black uppercase text-lg transition-all">
-                <FolderPlus className="w-5 h-5" strokeWidth={3} /> New Folder
+              <button 
+                onClick={async () => {
+                  const folder = prompt('Masukkan nama folder lokal (contoh: my-videos, atau path absolut D:/Videos):', 'videos');
+                  if (!folder) return;
+                  try {
+                    const res = await fetch('/api/video/local-sync', {
+                      method: 'POST',
+                      headers: { 'Content-Type': 'application/json' },
+                      body: JSON.stringify({ folderPath: folder })
+                    });
+                    const data = await res.json();
+                    if (data.success) {
+                      alert(`Berhasil tersinkronisasi: ${data.syncedCount} video baru!`);
+                      fetchVideos({ tab: 'ALL' }); // refresh
+                    } else {
+                      alert('Gagal: ' + data.error);
+                    }
+                  } catch(e) {
+                    alert('Error syncing folder');
+                  }
+                }}
+                className="flex items-center gap-2 bg-[#00E5FF] hover:bg-white border-4 border-black shadow-neu hover:translate-y-[-2px] hover:translate-x-[-2px] px-6 py-3 font-black uppercase text-lg transition-all"
+              >
+                <FolderPlus className="w-5 h-5" strokeWidth={3} /> Sync Local Folder
               </button>
             </>
           }
@@ -423,6 +445,30 @@ export default function LibraryContent({ activeTab }: { activeTab: string }) {
                             </>
                           ) : (
                             <>
+                              {!item.videoId && (
+                                <>
+                                  <button onClick={async () => {
+                                    try {
+                                      alert('Membangunkan AI Whisper. Subtitle sedang dibuat di latar belakang...');
+                                      await fetch(`/api/video/process/${item.id}?captions=true&lang=id`, { method: 'POST' });
+                                    } catch(e) {
+                                      alert('Gagal membuat subtitle');
+                                    }
+                                  }} className="p-3 text-left hover:bg-[#00E5FF] border-b-4 border-black flex items-center gap-2">
+                                    🎙️ Generate Subtitle
+                                  </button>
+                                  <button onClick={async () => {
+                                    try {
+                                      alert('Menganalisis naskah. Klip viral sedang dicari di latar belakang...');
+                                      await fetch(`/api/video/process/${item.id}?intent=Funny Moments`, { method: 'POST' });
+                                    } catch(e) {
+                                      alert('Gagal mengekstrak klip');
+                                    }
+                                  }} className="p-3 text-left hover:bg-primary text-black border-b-4 border-black flex items-center gap-2">
+                                    ✂️ Auto-Extract Clips
+                                  </button>
+                                </>
+                              )}
                               <Link href={`/editor?videoId=${item.id}`} className="p-3 text-left hover:bg-accent-blue border-b-4 border-black">
                                 Buka di Editor
                               </Link>

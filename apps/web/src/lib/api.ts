@@ -1,6 +1,6 @@
 import axios from 'axios';
 
-// Get the base API URL from environment variables, fallback to localhost:3345
+// Set base URL directly to NestJS backend port 3345 to bypass Next.js API Routes
 const API_BASE_URL = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:3345';
 
 export const api = axios.create({

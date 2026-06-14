@@ -47,7 +47,7 @@ export declare class ProjectService {
         id: string;
         userId: string;
         workspaceId: string;
-        status: import("@audira/database").$Enums.ProjectStatus;
+        status: string;
         createdAt: Date;
         updatedAt: Date;
         name: string;
@@ -95,7 +95,7 @@ export declare class ProjectService {
         id: string;
         userId: string;
         workspaceId: string;
-        status: import("@audira/database").$Enums.ProjectStatus;
+        status: string;
         createdAt: Date;
         updatedAt: Date;
         name: string;
@@ -143,7 +143,7 @@ export declare class ProjectService {
         id: string;
         userId: string;
         workspaceId: string;
-        status: import("@audira/database").$Enums.ProjectStatus;
+        status: string;
         createdAt: Date;
         updatedAt: Date;
         name: string;

@@ -9,11 +9,14 @@ const ollama = createOpenAI({
   apiKey: 'ollama', // API key dummy karena Ollama berjalan di localhost
 });
 
-const MODEL_NAME = 'qwen2.5:32b'; 
-const API_URL = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:3345';
+const MODEL_NAME = process.env.OLLAMA_MODEL || 'qwen2.5:32b'; 
+const API_URL = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:3344/api';
 
 export async function POST(req: Request) {
-  const { messages, videoId } = await req.json();
+  const { messages, videoId, modelName } = await req.json();
+
+  // Gunakan model yang dipilih oleh user, jika tidak ada fallback ke .env
+  const ACTIVE_MODEL = modelName || process.env.OLLAMA_MODEL || 'qwen2.5:32b';
 
   const systemPrompt = `Anda adalah AI Copilot untuk platform "Audira Clip AI" (aplikasi repurpose video). 
 Anda ahli dalam membantu user mengedit video, mencari klip lucu, dan menyarankan optimasi.
@@ -23,7 +26,7 @@ JANGAN mengirimkan teks panjang lebar jika sebuah tool sudah dipanggil.
 ` + (videoId ? `\nVideo ID saat ini adalah: ${videoId}` : `\nSaat ini user BELUM memilih video. Mintalah user untuk memilih video terlebih dahulu dari menu dropdown di atas.`);
 
   const result = await streamText({
-    model: ollama(MODEL_NAME),
+    model: ollama(ACTIVE_MODEL),
     system: systemPrompt,
     messages,
     tools: {

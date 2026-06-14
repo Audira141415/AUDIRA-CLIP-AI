@@ -627,7 +627,7 @@ export class VideoService {
               try {
                 this.logger.log(`Running Python OpenCV Face Tracker on ${absoluteInputPath}...`);
                 const trackerOut = path.join(process.cwd(), 'uploads', `tracker-${videoId}-${i}.json`);
-                const pythonCmd = process.platform === 'win32' ? 'python' : 'python3';
+                const pythonCmd = process.platform === 'win32' ? path.join(process.cwd(), '..', '..', 'ai-engine', 'venv', 'Scripts', 'python.exe') : path.join(process.cwd(), '..', '..', 'ai-engine', 'venv', 'bin', 'python');
                 const trackerScript = path.join(process.cwd(), '..', '..', 'ai-engine', 'tracker.py');
                 
                 await new Promise<void>((resolve, reject) => {
@@ -895,7 +895,7 @@ export class VideoService {
       this.logger.log(`Found custom subtitles for clip ${clipId}. Generating new ASS file...`);
       const newAssContent = SubtitleGenerator.generateAssSubtitles(
         `${clip.videoId}-${indexStr}`, 
-        existingSubtitles.content as any[], 
+        existingSubtitles.content as unknown as any[], 
         0, 
         clip.duration || 15
       );
@@ -964,8 +964,8 @@ export class VideoService {
       });
 
       // 2. Run Python Tracker
-      const trackerScript = path.join(process.cwd(), '..', 'ai-engine', 'tracker.py');
-      const pythonCmd = process.platform === 'win32' ? 'python' : 'python3';
+      const trackerScript = path.join(process.cwd(), '..', '..', 'ai-engine', 'tracker.py');
+      const pythonCmd = process.platform === 'win32' ? path.join(process.cwd(), '..', '..', 'ai-engine', 'venv', 'Scripts', 'python.exe') : path.join(process.cwd(), '..', '..', 'ai-engine', 'venv', 'bin', 'python');
       this.logger.log(`Executing OpenCV VideoWriter Tracking...`);
       await execPromise(`"${pythonCmd}" "${trackerScript}" --input "${rawSegmentPath}" --output "${trackedVideoPath}"`);
 

@@ -17,25 +17,25 @@ export declare class VideoController {
         teamMembers: number;
     }>;
     getLibrary(userId: string, workspaceId: string, tab?: string, sortBy?: string, folder?: string, search?: string, tag?: string, duration?: string, owner?: string): Promise<{
-        id: string;
         userId: string;
         workspaceId: string;
-        status: import("@prisma/client").$Enums.ProjectStatus;
+        id: string;
+        status: string;
         createdAt: Date;
         updatedAt: Date;
         name: string;
     }[] | ({
         video: {
-            progress: number;
-            id: string;
             userId: string;
             workspaceId: string;
+            id: string;
             title: string;
             url: string;
             duration: number;
-            status: import("@prisma/client").$Enums.VideoStatus;
+            status: string;
+            progress: number;
             statusMessage: string | null;
-            tags: string[];
+            tags: string;
             folder: string | null;
             isFavorite: boolean;
             isDeleted: boolean;
@@ -77,16 +77,16 @@ export declare class VideoController {
             clips: number;
         };
     } & {
-        progress: number;
-        id: string;
         userId: string;
         workspaceId: string;
+        id: string;
         title: string;
         url: string;
         duration: number;
-        status: import("@prisma/client").$Enums.VideoStatus;
+        status: string;
+        progress: number;
         statusMessage: string | null;
-        tags: string[];
+        tags: string;
         folder: string | null;
         isFavorite: boolean;
         isDeleted: boolean;
@@ -98,16 +98,16 @@ export declare class VideoController {
                 clips: number;
             };
         } & {
-            progress: number;
-            id: string;
             userId: string;
             workspaceId: string;
+            id: string;
             title: string;
             url: string;
             duration: number;
-            status: import("@prisma/client").$Enums.VideoStatus;
+            status: string;
+            progress: number;
             statusMessage: string | null;
-            tags: string[];
+            tags: string;
             folder: string | null;
             isFavorite: boolean;
             isDeleted: boolean;
@@ -116,16 +116,16 @@ export declare class VideoController {
         })[];
         clips: ({
             video: {
-                progress: number;
-                id: string;
                 userId: string;
                 workspaceId: string;
+                id: string;
                 title: string;
                 url: string;
                 duration: number;
-                status: import("@prisma/client").$Enums.VideoStatus;
+                status: string;
+                progress: number;
                 statusMessage: string | null;
-                tags: string[];
+                tags: string;
                 folder: string | null;
                 isFavorite: boolean;
                 isDeleted: boolean;
@@ -195,16 +195,16 @@ export declare class VideoController {
         aspectRatio: string;
         platform: string;
     } | {
-        progress: number;
-        id: string;
         userId: string;
         workspaceId: string;
+        id: string;
         title: string;
         url: string;
         duration: number;
-        status: import("@prisma/client").$Enums.VideoStatus;
+        status: string;
+        progress: number;
         statusMessage: string | null;
-        tags: string[];
+        tags: string;
         folder: string | null;
         isFavorite: boolean;
         isDeleted: boolean;
@@ -242,16 +242,16 @@ export declare class VideoController {
         aspectRatio: string;
         platform: string;
     } | {
-        progress: number;
-        id: string;
         userId: string;
         workspaceId: string;
+        id: string;
         title: string;
         url: string;
         duration: number;
-        status: import("@prisma/client").$Enums.VideoStatus;
+        status: string;
+        progress: number;
         statusMessage: string | null;
-        tags: string[];
+        tags: string;
         folder: string | null;
         isFavorite: boolean;
         isDeleted: boolean;
@@ -289,16 +289,16 @@ export declare class VideoController {
         aspectRatio: string;
         platform: string;
     } | {
-        progress: number;
-        id: string;
         userId: string;
         workspaceId: string;
+        id: string;
         title: string;
         url: string;
         duration: number;
-        status: import("@prisma/client").$Enums.VideoStatus;
+        status: string;
+        progress: number;
         statusMessage: string | null;
-        tags: string[];
+        tags: string;
         folder: string | null;
         isFavorite: boolean;
         isDeleted: boolean;
@@ -336,16 +336,16 @@ export declare class VideoController {
         aspectRatio: string;
         platform: string;
     } | {
-        progress: number;
-        id: string;
         userId: string;
         workspaceId: string;
+        id: string;
         title: string;
         url: string;
         duration: number;
-        status: import("@prisma/client").$Enums.VideoStatus;
+        status: string;
+        progress: number;
         statusMessage: string | null;
-        tags: string[];
+        tags: string;
         folder: string | null;
         isFavorite: boolean;
         isDeleted: boolean;
@@ -383,24 +383,24 @@ export declare class VideoController {
         aspectRatio: string;
         platform: string;
     } | {
-        id: string;
         userId: string;
         workspaceId: string;
-        status: import("@prisma/client").$Enums.ProjectStatus;
+        id: string;
+        status: string;
         createdAt: Date;
         updatedAt: Date;
         name: string;
     } | {
-        progress: number;
-        id: string;
         userId: string;
         workspaceId: string;
+        id: string;
         title: string;
         url: string;
         duration: number;
-        status: import("@prisma/client").$Enums.VideoStatus;
+        status: string;
+        progress: number;
         statusMessage: string | null;
-        tags: string[];
+        tags: string;
         folder: string | null;
         isFavorite: boolean;
         isDeleted: boolean;
@@ -408,10 +408,10 @@ export declare class VideoController {
         updatedAt: Date;
     } | undefined>;
     mergeClips(clipIds: string[], userId: string, workspaceId: string): Promise<{
-        id: string;
         userId: string;
         workspaceId: string;
-        status: import("@prisma/client").$Enums.ProjectStatus;
+        id: string;
+        status: string;
         createdAt: Date;
         updatedAt: Date;
         name: string;
@@ -420,16 +420,16 @@ export declare class VideoController {
         success: boolean;
         message: string;
         video: {
-            progress: number;
-            id: string;
             userId: string;
             workspaceId: string;
+            id: string;
             title: string;
             url: string;
             duration: number;
-            status: import("@prisma/client").$Enums.VideoStatus;
+            status: string;
+            progress: number;
             statusMessage: string | null;
-            tags: string[];
+            tags: string;
             folder: string | null;
             isFavorite: boolean;
             isDeleted: boolean;
@@ -445,16 +445,16 @@ export declare class VideoController {
         success: boolean;
         message: string;
         video: {
-            progress: number;
-            id: string;
             userId: string;
             workspaceId: string;
+            id: string;
             title: string;
             url: string;
             duration: number;
-            status: import("@prisma/client").$Enums.VideoStatus;
+            status: string;
+            progress: number;
             statusMessage: string | null;
-            tags: string[];
+            tags: string;
             folder: string | null;
             isFavorite: boolean;
             isDeleted: boolean;
@@ -536,16 +536,16 @@ export declare class VideoController {
             platform: string;
         }[];
     } & {
-        progress: number;
-        id: string;
         userId: string;
         workspaceId: string;
+        id: string;
         title: string;
         url: string;
         duration: number;
-        status: import("@prisma/client").$Enums.VideoStatus;
+        status: string;
+        progress: number;
         statusMessage: string | null;
-        tags: string[];
+        tags: string;
         folder: string | null;
         isFavorite: boolean;
         isDeleted: boolean;
@@ -567,7 +567,7 @@ export declare class VideoController {
     }>;
     getSubtitles(clipId: string): Promise<{
         success: boolean;
-        segments: import("@prisma/client/runtime/library").JsonValue;
+        segments: string;
         source: string;
         message?: undefined;
     } | {
@@ -583,6 +583,6 @@ export declare class VideoController {
         videoId: string | null;
         clipId: string | null;
         language: string;
-        content: import("@prisma/client/runtime/library").JsonValue;
+        content: string;
     }>;
 }

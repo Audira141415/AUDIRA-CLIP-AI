@@ -7,3 +7,5 @@ python-multipart
 websockets
 webrtcvad
 pydub
+mediapipe>=0.10.9
+edge-tts

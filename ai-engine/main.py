@@ -21,7 +21,7 @@ def main():
     
     # Transcribe audio dengan prompt ejaan
     prompt = "Berikut adalah transkripsi bahasa Indonesia yang dieja dengan benar, menggunakan kapitalisasi yang tepat, tanpa disingkat."
-    segments, info = model.transcribe(args.audio, beam_size=5, language=args.language, word_timestamps=False, initial_prompt=prompt)
+    segments, info = model.transcribe(args.audio, beam_size=5, language=args.language, word_timestamps=True, initial_prompt=prompt)
     
     print("Transcription started, detected language '%s' with probability %f" % (info.language, info.language_probability))
     
@@ -29,10 +29,20 @@ def main():
     
     for segment in segments:
         print(f"[-> {segment.end:.2f}s] {segment.text}")
+        words = []
+        if segment.words:
+            for w in segment.words:
+                words.append({
+                    "start": w.start,
+                    "end": w.end,
+                    "word": w.word.strip()
+                })
+                
         results.append({
             "start": segment.start,
             "end": segment.end,
-            "text": segment.text.strip()
+            "text": segment.text.strip(),
+            "words": words
         })
         
     end_time = time.time()

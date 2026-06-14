@@ -590,7 +590,7 @@ let VideoService = VideoService_1 = class VideoService {
                             try {
                                 this.logger.log(`Running Python OpenCV Face Tracker on ${absoluteInputPath}...`);
                                 const trackerOut = path.join(process.cwd(), 'uploads', `tracker-${videoId}-${i}.json`);
-                                const pythonCmd = process.platform === 'win32' ? 'python' : 'python3';
+                                const pythonCmd = process.platform === 'win32' ? path.join(process.cwd(), '..', '..', 'ai-engine', 'venv', 'Scripts', 'python.exe') : path.join(process.cwd(), '..', '..', 'ai-engine', 'venv', 'bin', 'python');
                                 const trackerScript = path.join(process.cwd(), '..', '..', 'ai-engine', 'tracker.py');
                                 await new Promise((resolve, reject) => {
                                     const { spawn } = require('child_process');
@@ -862,8 +862,10 @@ let VideoService = VideoService_1 = class VideoService {
                         .output(rawSegmentPath).on('end', () => res()).on('error', rej).run();
                 });
             });
-            const trackerScript = path.join(process.cwd(), '..', 'ai-engine', 'tracker.py');
-            await execPromise(`python "${trackerScript}" --input "${rawSegmentPath}" --output "${trackedVideoPath}"`);
+            const trackerScript = path.join(process.cwd(), '..', '..', 'ai-engine', 'tracker.py');
+            const pythonCmd = process.platform === 'win32' ? path.join(process.cwd(), '..', '..', 'ai-engine', 'venv', 'Scripts', 'python.exe') : path.join(process.cwd(), '..', '..', 'ai-engine', 'venv', 'bin', 'python');
+            this.logger.log(`Executing OpenCV VideoWriter Tracking...`);
+            await execPromise(`"${pythonCmd}" "${trackerScript}" --input "${rawSegmentPath}" --output "${trackedVideoPath}"`);
             await this.enqueueFfmpegTask(`Merge Audio ${clipId}`, async () => {
                 await new Promise((res, rej) => {
                     ffmpeg(trackedVideoPath).input(rawSegmentPath)

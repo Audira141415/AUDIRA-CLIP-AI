@@ -21,16 +21,16 @@ export declare class VideoService {
     }>;
     getLibrary(userId: string, workspaceId: string, query?: any): Promise<({
         video: {
-            progress: number;
-            id: string;
             userId: string;
             workspaceId: string;
+            id: string;
             title: string;
             url: string;
             duration: number;
-            status: import("@audira/database").$Enums.VideoStatus;
+            status: string;
+            progress: number;
             statusMessage: string | null;
-            tags: string[];
+            tags: string;
             folder: string | null;
             isFavorite: boolean;
             isDeleted: boolean;
@@ -68,10 +68,10 @@ export declare class VideoService {
         aspectRatio: string;
         platform: string;
     })[] | {
-        id: string;
         userId: string;
         workspaceId: string;
-        status: import("@audira/database").$Enums.ProjectStatus;
+        id: string;
+        status: string;
         createdAt: Date;
         updatedAt: Date;
         name: string;
@@ -80,16 +80,16 @@ export declare class VideoService {
             clips: number;
         };
     } & {
-        progress: number;
-        id: string;
         userId: string;
         workspaceId: string;
+        id: string;
         title: string;
         url: string;
         duration: number;
-        status: import("@audira/database").$Enums.VideoStatus;
+        status: string;
+        progress: number;
         statusMessage: string | null;
-        tags: string[];
+        tags: string;
         folder: string | null;
         isFavorite: boolean;
         isDeleted: boolean;
@@ -101,16 +101,16 @@ export declare class VideoService {
                 clips: number;
             };
         } & {
-            progress: number;
-            id: string;
             userId: string;
             workspaceId: string;
+            id: string;
             title: string;
             url: string;
             duration: number;
-            status: import("@audira/database").$Enums.VideoStatus;
+            status: string;
+            progress: number;
             statusMessage: string | null;
-            tags: string[];
+            tags: string;
             folder: string | null;
             isFavorite: boolean;
             isDeleted: boolean;
@@ -119,16 +119,16 @@ export declare class VideoService {
         })[];
         clips: ({
             video: {
-                progress: number;
-                id: string;
                 userId: string;
                 workspaceId: string;
+                id: string;
                 title: string;
                 url: string;
                 duration: number;
-                status: import("@audira/database").$Enums.VideoStatus;
+                status: string;
+                progress: number;
                 statusMessage: string | null;
-                tags: string[];
+                tags: string;
                 folder: string | null;
                 isFavorite: boolean;
                 isDeleted: boolean;
@@ -198,16 +198,16 @@ export declare class VideoService {
         aspectRatio: string;
         platform: string;
     } | {
-        progress: number;
-        id: string;
         userId: string;
         workspaceId: string;
+        id: string;
         title: string;
         url: string;
         duration: number;
-        status: import("@audira/database").$Enums.VideoStatus;
+        status: string;
+        progress: number;
         statusMessage: string | null;
-        tags: string[];
+        tags: string;
         folder: string | null;
         isFavorite: boolean;
         isDeleted: boolean;
@@ -245,16 +245,16 @@ export declare class VideoService {
         aspectRatio: string;
         platform: string;
     } | {
-        progress: number;
-        id: string;
         userId: string;
         workspaceId: string;
+        id: string;
         title: string;
         url: string;
         duration: number;
-        status: import("@audira/database").$Enums.VideoStatus;
+        status: string;
+        progress: number;
         statusMessage: string | null;
-        tags: string[];
+        tags: string;
         folder: string | null;
         isFavorite: boolean;
         isDeleted: boolean;
@@ -292,16 +292,16 @@ export declare class VideoService {
         aspectRatio: string;
         platform: string;
     } | {
-        progress: number;
-        id: string;
         userId: string;
         workspaceId: string;
+        id: string;
         title: string;
         url: string;
         duration: number;
-        status: import("@audira/database").$Enums.VideoStatus;
+        status: string;
+        progress: number;
         statusMessage: string | null;
-        tags: string[];
+        tags: string;
         folder: string | null;
         isFavorite: boolean;
         isDeleted: boolean;
@@ -339,16 +339,16 @@ export declare class VideoService {
         aspectRatio: string;
         platform: string;
     } | {
-        progress: number;
-        id: string;
         userId: string;
         workspaceId: string;
+        id: string;
         title: string;
         url: string;
         duration: number;
-        status: import("@audira/database").$Enums.VideoStatus;
+        status: string;
+        progress: number;
         statusMessage: string | null;
-        tags: string[];
+        tags: string;
         folder: string | null;
         isFavorite: boolean;
         isDeleted: boolean;
@@ -386,24 +386,24 @@ export declare class VideoService {
         aspectRatio: string;
         platform: string;
     } | {
-        id: string;
         userId: string;
         workspaceId: string;
-        status: import("@audira/database").$Enums.ProjectStatus;
+        id: string;
+        status: string;
         createdAt: Date;
         updatedAt: Date;
         name: string;
     } | {
-        progress: number;
-        id: string;
         userId: string;
         workspaceId: string;
+        id: string;
         title: string;
         url: string;
         duration: number;
-        status: import("@audira/database").$Enums.VideoStatus;
+        status: string;
+        progress: number;
         statusMessage: string | null;
-        tags: string[];
+        tags: string;
         folder: string | null;
         isFavorite: boolean;
         isDeleted: boolean;
@@ -411,10 +411,10 @@ export declare class VideoService {
         updatedAt: Date;
     } | undefined>;
     mergeClips(clipIds: string[], userId: string, workspaceId: string): Promise<{
-        id: string;
         userId: string;
         workspaceId: string;
-        status: import("@audira/database").$Enums.ProjectStatus;
+        id: string;
+        status: string;
         createdAt: Date;
         updatedAt: Date;
         name: string;
@@ -425,16 +425,16 @@ export declare class VideoService {
         userId: string;
         workspaceId: string;
     }): Promise<{
-        progress: number;
-        id: string;
         userId: string;
         workspaceId: string;
+        id: string;
         title: string;
         url: string;
         duration: number;
-        status: import("@audira/database").$Enums.VideoStatus;
+        status: string;
+        progress: number;
         statusMessage: string | null;
-        tags: string[];
+        tags: string;
         folder: string | null;
         isFavorite: boolean;
         isDeleted: boolean;
@@ -474,16 +474,16 @@ export declare class VideoService {
             platform: string;
         }[];
     } & {
-        progress: number;
-        id: string;
         userId: string;
         workspaceId: string;
+        id: string;
         title: string;
         url: string;
         duration: number;
-        status: import("@audira/database").$Enums.VideoStatus;
+        status: string;
+        progress: number;
         statusMessage: string | null;
-        tags: string[];
+        tags: string;
         folder: string | null;
         isFavorite: boolean;
         isDeleted: boolean;
@@ -549,11 +549,11 @@ export declare class VideoService {
         videoId: string | null;
         clipId: string | null;
         language: string;
-        content: import("@prisma/client/runtime/library").JsonValue;
+        content: string;
     }>;
     getSubtitles(clipId: string): Promise<{
         success: boolean;
-        segments: import("@prisma/client/runtime/library").JsonValue;
+        segments: string;
         source: string;
         message?: undefined;
     } | {
