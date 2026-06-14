@@ -9,6 +9,11 @@ export declare class VideoService {
     private readonly gatewayClient;
     private readonly logger;
     private ffmpegQueue;
+    activeProcesses: Map<string, any>;
+    cancelProcess(id: string): Promise<{
+        success: boolean;
+        message: string;
+    }>;
     private enqueueFfmpegTask;
     constructor(ollamaService: OllamaService, transcriptionService: TranscriptionService, heatmapService: HeatmapService, gatewayClient: ClientProxy);
     getDashboardStats(userId: string, workspaceId: string): Promise<{
@@ -21,15 +26,15 @@ export declare class VideoService {
     }>;
     getLibrary(userId: string, workspaceId: string, query?: any): Promise<({
         video: {
-            userId: string;
-            workspaceId: string;
+            progress: number;
             id: string;
             title: string;
             url: string;
             duration: number;
             status: string;
-            progress: number;
             statusMessage: string | null;
+            userId: string;
+            workspaceId: string;
             tags: string;
             folder: string | null;
             isFavorite: boolean;
@@ -68,10 +73,10 @@ export declare class VideoService {
         aspectRatio: string;
         platform: string;
     })[] | {
-        userId: string;
-        workspaceId: string;
         id: string;
         status: string;
+        userId: string;
+        workspaceId: string;
         createdAt: Date;
         updatedAt: Date;
         name: string;
@@ -80,15 +85,15 @@ export declare class VideoService {
             clips: number;
         };
     } & {
-        userId: string;
-        workspaceId: string;
+        progress: number;
         id: string;
         title: string;
         url: string;
         duration: number;
         status: string;
-        progress: number;
         statusMessage: string | null;
+        userId: string;
+        workspaceId: string;
         tags: string;
         folder: string | null;
         isFavorite: boolean;
@@ -101,15 +106,15 @@ export declare class VideoService {
                 clips: number;
             };
         } & {
-            userId: string;
-            workspaceId: string;
+            progress: number;
             id: string;
             title: string;
             url: string;
             duration: number;
             status: string;
-            progress: number;
             statusMessage: string | null;
+            userId: string;
+            workspaceId: string;
             tags: string;
             folder: string | null;
             isFavorite: boolean;
@@ -119,15 +124,15 @@ export declare class VideoService {
         })[];
         clips: ({
             video: {
-                userId: string;
-                workspaceId: string;
+                progress: number;
                 id: string;
                 title: string;
                 url: string;
                 duration: number;
                 status: string;
-                progress: number;
                 statusMessage: string | null;
+                userId: string;
+                workspaceId: string;
                 tags: string;
                 folder: string | null;
                 isFavorite: boolean;
@@ -168,6 +173,22 @@ export declare class VideoService {
         })[];
     }>;
     toggleFavorite(type: string, id: string): Promise<{
+        progress: number;
+        id: string;
+        title: string;
+        url: string;
+        duration: number;
+        status: string;
+        statusMessage: string | null;
+        userId: string;
+        workspaceId: string;
+        tags: string;
+        folder: string | null;
+        isFavorite: boolean;
+        isDeleted: boolean;
+        createdAt: Date;
+        updatedAt: Date;
+    } | {
         id: string;
         title: string;
         url: string;
@@ -197,24 +218,24 @@ export declare class VideoService {
         ctaOverlay: string | null;
         aspectRatio: string;
         platform: string;
-    } | {
-        userId: string;
-        workspaceId: string;
-        id: string;
-        title: string;
-        url: string;
-        duration: number;
-        status: string;
-        progress: number;
-        statusMessage: string | null;
-        tags: string;
-        folder: string | null;
-        isFavorite: boolean;
-        isDeleted: boolean;
-        createdAt: Date;
-        updatedAt: Date;
     } | undefined>;
     moveToTrash(type: string, id: string): Promise<{
+        progress: number;
+        id: string;
+        title: string;
+        url: string;
+        duration: number;
+        status: string;
+        statusMessage: string | null;
+        userId: string;
+        workspaceId: string;
+        tags: string;
+        folder: string | null;
+        isFavorite: boolean;
+        isDeleted: boolean;
+        createdAt: Date;
+        updatedAt: Date;
+    } | {
         id: string;
         title: string;
         url: string;
@@ -244,24 +265,24 @@ export declare class VideoService {
         ctaOverlay: string | null;
         aspectRatio: string;
         platform: string;
-    } | {
-        userId: string;
-        workspaceId: string;
-        id: string;
-        title: string;
-        url: string;
-        duration: number;
-        status: string;
-        progress: number;
-        statusMessage: string | null;
-        tags: string;
-        folder: string | null;
-        isFavorite: boolean;
-        isDeleted: boolean;
-        createdAt: Date;
-        updatedAt: Date;
     } | undefined>;
     restoreFromTrash(type: string, id: string): Promise<{
+        progress: number;
+        id: string;
+        title: string;
+        url: string;
+        duration: number;
+        status: string;
+        statusMessage: string | null;
+        userId: string;
+        workspaceId: string;
+        tags: string;
+        folder: string | null;
+        isFavorite: boolean;
+        isDeleted: boolean;
+        createdAt: Date;
+        updatedAt: Date;
+    } | {
         id: string;
         title: string;
         url: string;
@@ -291,71 +312,71 @@ export declare class VideoService {
         ctaOverlay: string | null;
         aspectRatio: string;
         platform: string;
-    } | {
-        userId: string;
-        workspaceId: string;
-        id: string;
-        title: string;
-        url: string;
-        duration: number;
-        status: string;
-        progress: number;
-        statusMessage: string | null;
-        tags: string;
-        folder: string | null;
-        isFavorite: boolean;
-        isDeleted: boolean;
-        createdAt: Date;
-        updatedAt: Date;
     } | undefined>;
     deletePermanently(type: string, id: string): Promise<{
-        id: string;
-        title: string;
-        url: string;
-        duration: number;
-        folder: string | null;
-        isFavorite: boolean;
-        isDeleted: boolean;
-        createdAt: Date;
-        updatedAt: Date;
-        videoId: string;
-        thumbnailUrl: string | null;
-        startTime: number;
-        score: number | null;
-        reason: string | null;
-        socialCaption: string | null;
-        hashtags: string | null;
-        wpm: number | null;
-        pacing: string | null;
-        brollKeyword: string | null;
-        vibe: string | null;
-        hookStrength: string | null;
-        retentionRisk: string | null;
-        targetDemographic: string | null;
-        bgmSuggestion: string | null;
-        alternativeTitle: string | null;
-        brandSafety: string | null;
-        ctaOverlay: string | null;
-        aspectRatio: string;
-        platform: string;
-    } | {
-        userId: string;
-        workspaceId: string;
+        progress: number;
         id: string;
         title: string;
         url: string;
         duration: number;
         status: string;
-        progress: number;
         statusMessage: string | null;
+        userId: string;
+        workspaceId: string;
         tags: string;
         folder: string | null;
         isFavorite: boolean;
         isDeleted: boolean;
         createdAt: Date;
         updatedAt: Date;
+    } | {
+        id: string;
+        title: string;
+        url: string;
+        duration: number;
+        folder: string | null;
+        isFavorite: boolean;
+        isDeleted: boolean;
+        createdAt: Date;
+        updatedAt: Date;
+        videoId: string;
+        thumbnailUrl: string | null;
+        startTime: number;
+        score: number | null;
+        reason: string | null;
+        socialCaption: string | null;
+        hashtags: string | null;
+        wpm: number | null;
+        pacing: string | null;
+        brollKeyword: string | null;
+        vibe: string | null;
+        hookStrength: string | null;
+        retentionRisk: string | null;
+        targetDemographic: string | null;
+        bgmSuggestion: string | null;
+        alternativeTitle: string | null;
+        brandSafety: string | null;
+        ctaOverlay: string | null;
+        aspectRatio: string;
+        platform: string;
     } | undefined>;
     renameMedia(type: string, id: string, newTitle: string): Promise<{
+        progress: number;
+        id: string;
+        title: string;
+        url: string;
+        duration: number;
+        status: string;
+        statusMessage: string | null;
+        userId: string;
+        workspaceId: string;
+        tags: string;
+        folder: string | null;
+        isFavorite: boolean;
+        isDeleted: boolean;
+        createdAt: Date;
+        updatedAt: Date;
+    } | {
         id: string;
         title: string;
         url: string;
@@ -386,35 +407,19 @@ export declare class VideoService {
         aspectRatio: string;
         platform: string;
     } | {
-        userId: string;
-        workspaceId: string;
         id: string;
         status: string;
+        userId: string;
+        workspaceId: string;
         createdAt: Date;
         updatedAt: Date;
         name: string;
-    } | {
-        userId: string;
-        workspaceId: string;
-        id: string;
-        title: string;
-        url: string;
-        duration: number;
-        status: string;
-        progress: number;
-        statusMessage: string | null;
-        tags: string;
-        folder: string | null;
-        isFavorite: boolean;
-        isDeleted: boolean;
-        createdAt: Date;
-        updatedAt: Date;
     } | undefined>;
     mergeClips(clipIds: string[], userId: string, workspaceId: string): Promise<{
-        userId: string;
-        workspaceId: string;
         id: string;
         status: string;
+        userId: string;
+        workspaceId: string;
         createdAt: Date;
         updatedAt: Date;
         name: string;
@@ -425,15 +430,15 @@ export declare class VideoService {
         userId: string;
         workspaceId: string;
     }): Promise<{
-        userId: string;
-        workspaceId: string;
+        progress: number;
         id: string;
         title: string;
         url: string;
         duration: number;
         status: string;
-        progress: number;
         statusMessage: string | null;
+        userId: string;
+        workspaceId: string;
         tags: string;
         folder: string | null;
         isFavorite: boolean;
@@ -474,15 +479,15 @@ export declare class VideoService {
             platform: string;
         }[];
     } & {
-        userId: string;
-        workspaceId: string;
+        progress: number;
         id: string;
         title: string;
         url: string;
         duration: number;
         status: string;
-        progress: number;
         statusMessage: string | null;
+        userId: string;
+        workspaceId: string;
         tags: string;
         folder: string | null;
         isFavorite: boolean;

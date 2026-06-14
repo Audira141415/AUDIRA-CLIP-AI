@@ -29,6 +29,27 @@ export class VideoService {
 
   // Layer 2: The Bottleneck Queue (FFmpeg Concurrency Lock)
   private ffmpegQueue: Promise<any> = Promise.resolve();
+  public activeProcesses = new Map<string, any>();
+
+  async cancelProcess(id: string) {
+    try {
+      const process = this.activeProcesses.get(id);
+      if (process) {
+        if (typeof process.kill === 'function') {
+          process.kill('SIGKILL');
+        }
+        this.activeProcesses.delete(id);
+      }
+      await prisma.video.update({ 
+        where: { id }, 
+        data: { status: 'FAILED', statusMessage: 'Canceled by user' } 
+      });
+      return { success: true, message: 'Process canceled successfully' };
+    } catch (e) {
+      this.logger.error(`Error canceling process ${id}:`, e);
+      return { success: false, message: 'Failed to cancel process' };
+    }
+  }
 
   private async enqueueFfmpegTask<T>(taskName: string, task: () => Promise<T>): Promise<T> {
     this.logger.log(`Queueing FFmpeg Task: ${taskName}`);

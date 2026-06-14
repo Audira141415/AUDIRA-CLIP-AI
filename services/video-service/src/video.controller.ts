@@ -133,6 +133,11 @@ export class VideoController {
     return { success: true, message: "Processing started" };
   }
 
+  @Post('cancel/:id')
+  async cancelProcess(@Param('id') id: string) {
+    return this.videoService.cancelProcess(id);
+  }
+
   @Post('import-url')
   async importUrl(
     @Query('url') url: string,

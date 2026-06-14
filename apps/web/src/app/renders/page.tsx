@@ -5,11 +5,14 @@ import { Search, ChevronDown, Plus, Play, Clock, CheckCircle2, AlertTriangle, Do
 import PageHero from "@/components/ui/PageHero";
 import { useSocket } from "@/hooks/useSocket";
 import { useVideoStore } from "@/store/useVideoStore";
-import { useEffect } from "react";
+import { useEffect, useState } from "react";
+import { Loader2 } from "lucide-react";
 
 export default function RenderQueuePage() {
   const socket = useSocket();
   const { videos, fetchVideos, setVideos } = useVideoStore();
+  const [clearedIds, setClearedIds] = useState<string[]>([]);
+  const [playingVideoUrl, setPlayingVideoUrl] = useState<string | null>(null);
 
   useEffect(() => {
     fetchVideos();
@@ -30,6 +33,7 @@ export default function RenderQueuePage() {
 
   const queue = videos.map(v => ({
     title: v.title || 'Untitled',
+    url: v.url,
     details: 'Auto Resolution',
     preset: v.id,
     codec: 'Auto',
@@ -120,7 +124,13 @@ export default function RenderQueuePage() {
             </div>
 
             <div className="flex gap-4">
-              <button className="bg-white border-4 border-black py-3 px-6 font-black uppercase text-sm shadow-[4px_4px_0px_0px_rgba(0,0,0,1)] hover:shadow-[2px_2px_0px_0px_rgba(0,0,0,1)] hover:translate-y-[2px] hover:translate-x-[2px] hover:bg-gray-100 transition-all whitespace-nowrap">
+              <button 
+                onClick={() => {
+                  const completedOrFailed = queue.filter(q => q.status === 'READY' || q.status === 'Failed').map(q => q.id);
+                  setClearedIds([...clearedIds, ...completedOrFailed]);
+                }}
+                className="bg-white border-4 border-black py-3 px-6 font-black uppercase text-sm shadow-[4px_4px_0px_0px_rgba(0,0,0,1)] hover:shadow-[2px_2px_0px_0px_rgba(0,0,0,1)] hover:translate-y-[2px] hover:translate-x-[2px] hover:bg-gray-100 transition-all whitespace-nowrap"
+              >
                 Clear Completed
               </button>
               <button className="bg-[#F5A623] border-4 border-black py-3 px-6 font-black uppercase text-sm flex items-center gap-2 shadow-[4px_4px_0px_0px_rgba(0,0,0,1)] hover:shadow-[2px_2px_0px_0px_rgba(0,0,0,1)] hover:translate-y-[2px] hover:translate-x-[2px] hover:bg-[#FFEDF4] transition-all whitespace-nowrap">
@@ -145,12 +155,20 @@ export default function RenderQueuePage() {
                   </tr>
                 </thead>
                 <tbody className="font-bold text-sm">
-                  {queue.map((q, i) => (
+                  {queue.filter(q => !clearedIds.includes(q.id)).map((q, i) => (
                     <tr key={i} className="border-b-2 border-gray-200 hover:bg-[#FFF8EB] transition-colors group">
                       <td className="p-4 border-r-2 border-gray-200 group-hover:border-black flex gap-4">
                         <div className="w-24 h-16 bg-gray-900 border-2 border-black shrink-0 relative overflow-hidden">
                           <img src="/feature_clipping.png" className="w-full h-full object-cover opacity-70 mix-blend-luminosity" />
                           <div className="absolute bottom-1 left-1 bg-black text-white text-[8px] font-black px-1 border-2 border-black">01:23</div>
+                          {q.status === 'READY' && q.url && (
+                            <button 
+                              onClick={() => setPlayingVideoUrl(q.url)}
+                              className="absolute inset-0 flex items-center justify-center bg-black/50 opacity-0 group-hover:opacity-100 transition-opacity"
+                            >
+                              <Play className="w-6 h-6 text-white" fill="currentColor" />
+                            </button>
+                          )}
                         </div>
                         <div className="flex flex-col justify-center">
                           <div className="font-black text-sm truncate max-w-[180px]">{q.title}</div>
@@ -165,10 +183,16 @@ export default function RenderQueuePage() {
                         <span className={`inline-flex items-center gap-2 border-2 border-black px-2 py-1 text-xs font-black uppercase shadow-[2px_2px_0px_0px_rgba(0,0,0,1)] ${q.statusColor}`}>
                           {q.status}
                         </span>
+                        {q.status === 'Failed' && q.statusMessage && (
+                           <button onClick={() => alert(`Error Log: ${q.statusMessage}`)} className="ml-2 bg-black text-white text-[10px] px-1 font-black rounded-sm shadow-sm" title="Show Error Log">
+                             ℹ️
+                           </button>
+                        )}
                       </td>
                       <td className="p-4 border-r-2 border-gray-200 group-hover:border-black w-48">
                         <div className="flex justify-between text-xs font-black mb-1">
                           <span>{q.progress}%</span>
+                          {q.statusMessage && <span className="text-[10px] text-gray-500 truncate max-w-[100px]">{q.statusMessage}</span>}
                         </div>
                         <div className="w-full h-3 bg-gray-100 border-2 border-black overflow-hidden relative">
                           <div className="absolute top-0 left-0 h-full border-r-2 border-black bg-black" style={{ width: `${q.progress}%` }}></div>
@@ -184,17 +208,66 @@ export default function RenderQueuePage() {
                       </td>
                       <td className="p-4 text-center">
                         <div className="flex items-center justify-center gap-2">
-                          {q.status === 'Completed' && (
-                            <button className="p-1 hover:bg-[#00E5FF] border-2 border-transparent hover:border-black transition-colors rounded-sm shadow-sm">
-                              <Download className="w-5 h-5" strokeWidth={2.5} />
+                          {q.status === 'READY' && q.url && (
+                            <button 
+                              onClick={() => setPlayingVideoUrl(q.url)}
+                              className="p-1 hover:bg-[#FFD700] border-2 border-transparent hover:border-black transition-colors rounded-sm shadow-sm"
+                              title="Play Video"
+                            >
+                              <Play className="w-5 h-5" strokeWidth={2.5} />
                             </button>
                           )}
+                          {q.status === 'READY' && q.url && (
+                            <a 
+                              href={q.url.startsWith('local://') ? q.url.replace('local://', 'http://localhost:3345/') : q.url}
+                              download={`${q.title}.mp4`}
+                              target="_blank"
+                              rel="noreferrer"
+                              className="p-1 hover:bg-[#00E5FF] border-2 border-transparent hover:border-black transition-colors rounded-sm shadow-sm flex items-center"
+                              onClick={(e) => e.stopPropagation()}
+                              title="Download"
+                            >
+                              <Download className="w-5 h-5" strokeWidth={2.5} />
+                            </a>
+                          )}
                           {q.status === 'Failed' && (
-                            <button className="p-1 hover:bg-[#F5A623] border-2 border-transparent hover:border-black transition-colors rounded-sm shadow-sm">
+                            <button 
+                              onClick={async (e) => {
+                                e.stopPropagation();
+                                try {
+                                  alert('Mencoba ulang proses...');
+                                  await fetch(`/api/video/process/${q.preset}`, { method: 'POST' });
+                                } catch (e) {
+                                  alert('Gagal mencoba ulang');
+                                }
+                              }}
+                              className="p-1 hover:bg-[#F5A623] border-2 border-transparent hover:border-black transition-colors rounded-sm shadow-sm" 
+                              title="Retry / Rerender"
+                            >
                               <RefreshCw className="w-5 h-5" strokeWidth={2.5} />
                             </button>
                           )}
-                          <button className="p-1 hover:bg-[#FFEDF4] border-2 border-transparent hover:border-black transition-colors rounded-sm shadow-sm">
+                          {(q.status === 'Rendering' || q.status === 'Waiting') && (
+                            <button 
+                              onClick={async (e) => {
+                                e.stopPropagation();
+                                if(confirm('Batalkan proses ini?')) {
+                                  // Call cancel endpoint
+                                  try {
+                                    await fetch(`/api/video/cancel/${q.preset}`, { method: 'POST' });
+                                    alert('Berhasil membatalkan proses');
+                                  } catch (e) {
+                                    alert('Gagal membatalkan proses');
+                                  }
+                                }
+                              }}
+                              className="p-1 hover:bg-red-400 border-2 border-transparent hover:border-black transition-colors rounded-sm shadow-sm" 
+                              title="Cancel Process"
+                            >
+                              <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2.5" d="M6 18L18 6M6 6l12 12" /></svg>
+                            </button>
+                          )}
+                          <button className="p-1 hover:bg-[#FFEDF4] border-2 border-transparent hover:border-black transition-colors rounded-sm shadow-sm" title="More">
                             <MoreHorizontal className="w-5 h-5" strokeWidth={2.5} />
                           </button>
                         </div>
@@ -208,7 +281,7 @@ export default function RenderQueuePage() {
 
           {/* Pagination */}
           <div className="flex justify-between items-center text-sm font-black text-gray-500 mt-auto">
-            <span>Showing 1 to 7 of 7 results</span>
+            <span>Showing 1 to {queue.filter(q => !clearedIds.includes(q.id)).length} of {queue.filter(q => !clearedIds.includes(q.id)).length} results</span>
             <div className="flex gap-2">
               <button className="w-8 h-8 flex items-center justify-center bg-white border-2 border-black hover:bg-[#F5A623] transition-colors shadow-[2px_2px_0px_0px_rgba(0,0,0,1)] text-black">
                 <ChevronLeft className="w-4 h-4" strokeWidth={3} />
@@ -356,6 +429,28 @@ export default function RenderQueuePage() {
 
         </div>
       </div>
+
+      {/* Video Player Modal */}
+      {playingVideoUrl && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/80 backdrop-blur-sm p-4">
+          <div className="bg-white border-4 border-black shadow-[8px_8px_0px_0px_rgba(255,204,0,1)] w-full max-w-5xl h-[80vh] relative flex flex-col">
+            <button 
+              onClick={() => setPlayingVideoUrl(null)}
+              className="absolute top-4 right-4 w-12 h-12 bg-primary border-4 border-black text-black font-black text-2xl flex items-center justify-center hover:scale-110 transition-transform shadow-[4px_4px_0px_0px_rgba(0,0,0,1)] z-50"
+            >
+              X
+            </button>
+            <div className="bg-black flex-1 w-full h-full flex items-center justify-center relative overflow-hidden">
+              <video 
+                src={playingVideoUrl.startsWith('local://') ? playingVideoUrl.replace('local://', 'http://localhost:3345/') : playingVideoUrl} 
+                controls 
+                autoPlay 
+                className="w-full h-full object-contain relative z-10"
+              />
+            </div>
+          </div>
+        </div>
+      )}
     </DashboardLayout>
   );
 }

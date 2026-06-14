@@ -74,6 +74,27 @@ let VideoService = VideoService_1 = class VideoService {
     gatewayClient;
     logger = new common_1.Logger(VideoService_1.name);
     ffmpegQueue = Promise.resolve();
+    activeProcesses = new Map();
+    async cancelProcess(id) {
+        try {
+            const process = this.activeProcesses.get(id);
+            if (process) {
+                if (typeof process.kill === 'function') {
+                    process.kill('SIGKILL');
+                }
+                this.activeProcesses.delete(id);
+            }
+            await database_1.prisma.video.update({
+                where: { id },
+                data: { status: 'FAILED', statusMessage: 'Canceled by user' }
+            });
+            return { success: true, message: 'Process canceled successfully' };
+        }
+        catch (e) {
+            this.logger.error(`Error canceling process ${id}:`, e);
+            return { success: false, message: 'Failed to cancel process' };
+        }
+    }
     async enqueueFfmpegTask(taskName, task) {
         this.logger.log(`Queueing FFmpeg Task: ${taskName}`);
         return new Promise((resolve, reject) => {

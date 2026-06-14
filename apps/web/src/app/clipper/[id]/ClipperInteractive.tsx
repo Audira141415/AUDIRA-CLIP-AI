@@ -414,14 +414,25 @@ export default function ClipperInteractive({ videoData, initialVideoUrl }: { vid
                         {isSelected ? '✓ Selected' : '+ Select'}
                       </button>
                     </div>
-                    <div className="mt-3">
+                    <div className="mt-3 flex gap-2">
                       <Link 
                         href={`/editor/${clip.id}`}
                         onClick={(e) => e.stopPropagation()}
-                        className="w-full text-center block text-[11px] font-black uppercase px-2.5 py-1.5 border-2 border-black bg-white text-black shadow-[2px_2px_0px_0px_rgba(0,0,0,1)] hover:bg-[#FFD700] hover:translate-y-[1px] hover:translate-x-[1px] hover:shadow-none transition-all"
+                        className="flex-1 text-center block text-[11px] font-black uppercase px-2.5 py-1.5 border-2 border-black bg-white text-black shadow-[2px_2px_0px_0px_rgba(0,0,0,1)] hover:bg-[#FFD700] hover:translate-y-[1px] hover:translate-x-[1px] hover:shadow-none transition-all"
                       >
                         ✏️ Edit Subtitle
                       </Link>
+                      <a 
+                        href={clip.url?.startsWith("local://") ? clip.url.replace("local://", "http://localhost:3345/") : clip.url}
+                        download={`clip-${clip.id}.mp4`}
+                        target="_blank"
+                        rel="noreferrer"
+                        onClick={(e) => e.stopPropagation()}
+                        className="w-10 flex items-center justify-center text-[11px] font-black uppercase px-2 py-1.5 border-2 border-black bg-[#00FF66] text-black shadow-[2px_2px_0px_0px_rgba(0,0,0,1)] hover:bg-[#00CC52] hover:translate-y-[1px] hover:translate-x-[1px] hover:shadow-none transition-all"
+                        title="Download Video"
+                      >
+                        <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="3" d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-4l-4 4m0 0l-4-4m4 4V4" /></svg>
+                      </a>
                     </div>
                   </div>
                 </div>

@@ -50,9 +50,9 @@ export declare class ProjectController {
             })[];
         } & {
             id: string;
+            status: string;
             userId: string;
             workspaceId: string;
-            status: string;
             createdAt: Date;
             updatedAt: Date;
             name: string;
@@ -99,9 +99,9 @@ export declare class ProjectController {
         })[];
     } & {
         id: string;
+        status: string;
         userId: string;
         workspaceId: string;
-        status: string;
         createdAt: Date;
         updatedAt: Date;
         name: string;
@@ -147,9 +147,9 @@ export declare class ProjectController {
         })[];
     } & {
         id: string;
+        status: string;
         userId: string;
         workspaceId: string;
-        status: string;
         createdAt: Date;
         updatedAt: Date;
         name: string;

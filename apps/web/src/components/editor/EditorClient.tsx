@@ -248,6 +248,18 @@ export default function EditorClient({ project, clips }: EditorClientProps) {
           <button className="px-4 py-1.5 rounded-none bg-white border-2 border-black text-sm font-black uppercase hover:bg-[#F4F4F0] shadow-[2px_2px_0px_0px_rgba(0,0,0,1)] hover:translate-y-[1px] hover:translate-x-[1px] hover:shadow-none transition-all">
             AI Copilot
           </button>
+          {activeClip?.url && activeClip.url !== 'pending' && (
+            <a 
+              href={activeClip.url}
+              download={`export-${projectName}.mp4`}
+              target="_blank"
+              rel="noreferrer"
+              className="px-4 py-1.5 rounded-none bg-[#00FF66] border-2 border-black text-black font-black text-sm uppercase hover:bg-[#00CC52] transition-all shadow-[2px_2px_0px_0px_rgba(0,0,0,1)] hover:translate-y-[1px] hover:translate-x-[1px] hover:shadow-none flex items-center gap-2"
+            >
+              <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="3" d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-4l-4 4m0 0l-4-4m4 4V4" /></svg>
+              Download
+            </a>
+          )}
           <button 
             onClick={handleExport}
             disabled={isExporting}

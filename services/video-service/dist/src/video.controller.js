@@ -88,6 +88,9 @@ let VideoController = class VideoController {
         this.queueProducer.addProcessJob(id, aspects, { intent });
         return { success: true, message: "Processing started" };
     }
+    async cancelProcess(id) {
+        return this.videoService.cancelProcess(id);
+    }
     async importUrl(url, userId, workspaceId, aspectsStr, intent, lang, captions, broll, quality, timeStart, timeEnd, clipLength, layoutMode, topic) {
         if (!url)
             throw new common_1.BadRequestException('url is required');
@@ -269,6 +272,13 @@ __decorate([
     __metadata("design:paramtypes", [String, String, String]),
     __metadata("design:returntype", Promise)
 ], VideoController.prototype, "processVideo", null);
+__decorate([
+    (0, common_1.Post)('cancel/:id'),
+    __param(0, (0, common_1.Param)('id')),
+    __metadata("design:type", Function),
+    __metadata("design:paramtypes", [String]),
+    __metadata("design:returntype", Promise)
+], VideoController.prototype, "cancelProcess", null);
 __decorate([
     (0, common_1.Post)('import-url'),
     __param(0, (0, common_1.Query)('url')),

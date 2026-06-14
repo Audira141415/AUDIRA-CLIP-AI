@@ -17,24 +17,24 @@ export declare class VideoController {
         teamMembers: number;
     }>;
     getLibrary(userId: string, workspaceId: string, tab?: string, sortBy?: string, folder?: string, search?: string, tag?: string, duration?: string, owner?: string): Promise<{
-        userId: string;
-        workspaceId: string;
         id: string;
         status: string;
+        userId: string;
+        workspaceId: string;
         createdAt: Date;
         updatedAt: Date;
         name: string;
     }[] | ({
         video: {
-            userId: string;
-            workspaceId: string;
+            progress: number;
             id: string;
             title: string;
             url: string;
             duration: number;
             status: string;
-            progress: number;
             statusMessage: string | null;
+            userId: string;
+            workspaceId: string;
             tags: string;
             folder: string | null;
             isFavorite: boolean;
@@ -77,15 +77,15 @@ export declare class VideoController {
             clips: number;
         };
     } & {
-        userId: string;
-        workspaceId: string;
+        progress: number;
         id: string;
         title: string;
         url: string;
         duration: number;
         status: string;
-        progress: number;
         statusMessage: string | null;
+        userId: string;
+        workspaceId: string;
         tags: string;
         folder: string | null;
         isFavorite: boolean;
@@ -98,15 +98,15 @@ export declare class VideoController {
                 clips: number;
             };
         } & {
-            userId: string;
-            workspaceId: string;
+            progress: number;
             id: string;
             title: string;
             url: string;
             duration: number;
             status: string;
-            progress: number;
             statusMessage: string | null;
+            userId: string;
+            workspaceId: string;
             tags: string;
             folder: string | null;
             isFavorite: boolean;
@@ -116,15 +116,15 @@ export declare class VideoController {
         })[];
         clips: ({
             video: {
-                userId: string;
-                workspaceId: string;
+                progress: number;
                 id: string;
                 title: string;
                 url: string;
                 duration: number;
                 status: string;
-                progress: number;
                 statusMessage: string | null;
+                userId: string;
+                workspaceId: string;
                 tags: string;
                 folder: string | null;
                 isFavorite: boolean;
@@ -165,6 +165,22 @@ export declare class VideoController {
         })[];
     }>;
     toggleFavorite(type: string, id: string): Promise<{
+        progress: number;
+        id: string;
+        title: string;
+        url: string;
+        duration: number;
+        status: string;
+        statusMessage: string | null;
+        userId: string;
+        workspaceId: string;
+        tags: string;
+        folder: string | null;
+        isFavorite: boolean;
+        isDeleted: boolean;
+        createdAt: Date;
+        updatedAt: Date;
+    } | {
         id: string;
         title: string;
         url: string;
@@ -194,24 +210,24 @@ export declare class VideoController {
         ctaOverlay: string | null;
         aspectRatio: string;
         platform: string;
-    } | {
-        userId: string;
-        workspaceId: string;
-        id: string;
-        title: string;
-        url: string;
-        duration: number;
-        status: string;
-        progress: number;
-        statusMessage: string | null;
-        tags: string;
-        folder: string | null;
-        isFavorite: boolean;
-        isDeleted: boolean;
-        createdAt: Date;
-        updatedAt: Date;
     } | undefined>;
     moveToTrash(type: string, id: string): Promise<{
+        progress: number;
+        id: string;
+        title: string;
+        url: string;
+        duration: number;
+        status: string;
+        statusMessage: string | null;
+        userId: string;
+        workspaceId: string;
+        tags: string;
+        folder: string | null;
+        isFavorite: boolean;
+        isDeleted: boolean;
+        createdAt: Date;
+        updatedAt: Date;
+    } | {
         id: string;
         title: string;
         url: string;
@@ -241,24 +257,24 @@ export declare class VideoController {
         ctaOverlay: string | null;
         aspectRatio: string;
         platform: string;
-    } | {
-        userId: string;
-        workspaceId: string;
-        id: string;
-        title: string;
-        url: string;
-        duration: number;
-        status: string;
-        progress: number;
-        statusMessage: string | null;
-        tags: string;
-        folder: string | null;
-        isFavorite: boolean;
-        isDeleted: boolean;
-        createdAt: Date;
-        updatedAt: Date;
     } | undefined>;
     restoreFromTrash(type: string, id: string): Promise<{
+        progress: number;
+        id: string;
+        title: string;
+        url: string;
+        duration: number;
+        status: string;
+        statusMessage: string | null;
+        userId: string;
+        workspaceId: string;
+        tags: string;
+        folder: string | null;
+        isFavorite: boolean;
+        isDeleted: boolean;
+        createdAt: Date;
+        updatedAt: Date;
+    } | {
         id: string;
         title: string;
         url: string;
@@ -288,71 +304,71 @@ export declare class VideoController {
         ctaOverlay: string | null;
         aspectRatio: string;
         platform: string;
-    } | {
-        userId: string;
-        workspaceId: string;
-        id: string;
-        title: string;
-        url: string;
-        duration: number;
-        status: string;
-        progress: number;
-        statusMessage: string | null;
-        tags: string;
-        folder: string | null;
-        isFavorite: boolean;
-        isDeleted: boolean;
-        createdAt: Date;
-        updatedAt: Date;
     } | undefined>;
     deletePermanently(type: string, id: string): Promise<{
-        id: string;
-        title: string;
-        url: string;
-        duration: number;
-        folder: string | null;
-        isFavorite: boolean;
-        isDeleted: boolean;
-        createdAt: Date;
-        updatedAt: Date;
-        videoId: string;
-        thumbnailUrl: string | null;
-        startTime: number;
-        score: number | null;
-        reason: string | null;
-        socialCaption: string | null;
-        hashtags: string | null;
-        wpm: number | null;
-        pacing: string | null;
-        brollKeyword: string | null;
-        vibe: string | null;
-        hookStrength: string | null;
-        retentionRisk: string | null;
-        targetDemographic: string | null;
-        bgmSuggestion: string | null;
-        alternativeTitle: string | null;
-        brandSafety: string | null;
-        ctaOverlay: string | null;
-        aspectRatio: string;
-        platform: string;
-    } | {
-        userId: string;
-        workspaceId: string;
+        progress: number;
         id: string;
         title: string;
         url: string;
         duration: number;
         status: string;
-        progress: number;
         statusMessage: string | null;
+        userId: string;
+        workspaceId: string;
         tags: string;
         folder: string | null;
         isFavorite: boolean;
         isDeleted: boolean;
         createdAt: Date;
         updatedAt: Date;
+    } | {
+        id: string;
+        title: string;
+        url: string;
+        duration: number;
+        folder: string | null;
+        isFavorite: boolean;
+        isDeleted: boolean;
+        createdAt: Date;
+        updatedAt: Date;
+        videoId: string;
+        thumbnailUrl: string | null;
+        startTime: number;
+        score: number | null;
+        reason: string | null;
+        socialCaption: string | null;
+        hashtags: string | null;
+        wpm: number | null;
+        pacing: string | null;
+        brollKeyword: string | null;
+        vibe: string | null;
+        hookStrength: string | null;
+        retentionRisk: string | null;
+        targetDemographic: string | null;
+        bgmSuggestion: string | null;
+        alternativeTitle: string | null;
+        brandSafety: string | null;
+        ctaOverlay: string | null;
+        aspectRatio: string;
+        platform: string;
     } | undefined>;
     renameMedia(type: string, id: string, title: string): Promise<{
+        progress: number;
+        id: string;
+        title: string;
+        url: string;
+        duration: number;
+        status: string;
+        statusMessage: string | null;
+        userId: string;
+        workspaceId: string;
+        tags: string;
+        folder: string | null;
+        isFavorite: boolean;
+        isDeleted: boolean;
+        createdAt: Date;
+        updatedAt: Date;
+    } | {
         id: string;
         title: string;
         url: string;
@@ -383,35 +399,19 @@ export declare class VideoController {
         aspectRatio: string;
         platform: string;
     } | {
-        userId: string;
-        workspaceId: string;
         id: string;
         status: string;
+        userId: string;
+        workspaceId: string;
         createdAt: Date;
         updatedAt: Date;
         name: string;
-    } | {
-        userId: string;
-        workspaceId: string;
-        id: string;
-        title: string;
-        url: string;
-        duration: number;
-        status: string;
-        progress: number;
-        statusMessage: string | null;
-        tags: string;
-        folder: string | null;
-        isFavorite: boolean;
-        isDeleted: boolean;
-        createdAt: Date;
-        updatedAt: Date;
     } | undefined>;
     mergeClips(clipIds: string[], userId: string, workspaceId: string): Promise<{
-        userId: string;
-        workspaceId: string;
         id: string;
         status: string;
+        userId: string;
+        workspaceId: string;
         createdAt: Date;
         updatedAt: Date;
         name: string;
@@ -420,15 +420,15 @@ export declare class VideoController {
         success: boolean;
         message: string;
         video: {
-            userId: string;
-            workspaceId: string;
+            progress: number;
             id: string;
             title: string;
             url: string;
             duration: number;
             status: string;
-            progress: number;
             statusMessage: string | null;
+            userId: string;
+            workspaceId: string;
             tags: string;
             folder: string | null;
             isFavorite: boolean;
@@ -441,19 +441,23 @@ export declare class VideoController {
         success: boolean;
         message: string;
     }>;
+    cancelProcess(id: string): Promise<{
+        success: boolean;
+        message: string;
+    }>;
     importUrl(url: string, userId: string, workspaceId: string, aspectsStr?: string, intent?: string, lang?: string, captions?: string, broll?: string, quality?: string, timeStart?: string, timeEnd?: string, clipLength?: string, layoutMode?: string, topic?: string): Promise<{
         success: boolean;
         message: string;
         video: {
-            userId: string;
-            workspaceId: string;
+            progress: number;
             id: string;
             title: string;
             url: string;
             duration: number;
             status: string;
-            progress: number;
             statusMessage: string | null;
+            userId: string;
+            workspaceId: string;
             tags: string;
             folder: string | null;
             isFavorite: boolean;
@@ -536,15 +540,15 @@ export declare class VideoController {
             platform: string;
         }[];
     } & {
-        userId: string;
-        workspaceId: string;
+        progress: number;
         id: string;
         title: string;
         url: string;
         duration: number;
         status: string;
-        progress: number;
         statusMessage: string | null;
+        userId: string;
+        workspaceId: string;
         tags: string;
         folder: string | null;
         isFavorite: boolean;

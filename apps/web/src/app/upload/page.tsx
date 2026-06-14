@@ -13,7 +13,7 @@ export default function UploadCenter() {
   const router = useRouter();
   const [importMode, setImportMode] = useState<'LOCAL' | 'YOUTUBE' | 'SOCIAL'>('LOCAL');
   const [urlInput, setUrlInput] = useState('');
-  const [file, setFile] = useState<File | null>(null);
+  const [files, setFiles] = useState<File[]>([]);
   const [previewUrl, setPreviewUrl] = useState<string | null>(null);
   const [videoMeta, setVideoMeta] = useState<{duration: number, w: number, h: number} | null>(null);
   
@@ -31,6 +31,7 @@ export default function UploadCenter() {
 
   const [isUploading, setIsUploading] = useState(false);
   const [uploadProgress, setUploadProgress] = useState(0);
+  const [showServerInfo, setShowServerInfo] = useState(false);
 
   const { data: session } = useSession();
   const userId = (session?.user as any)?.id || "1";
@@ -38,10 +39,14 @@ export default function UploadCenter() {
 
   const handleFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     if (e.target.files && e.target.files.length > 0) {
-      const selected = e.target.files[0];
-      setFile(selected);
+      const selected = Array.from(e.target.files);
+      setFiles(selected);
       if (previewUrl) URL.revokeObjectURL(previewUrl);
-      setPreviewUrl(URL.createObjectURL(selected));
+      if (selected.length === 1) {
+        setPreviewUrl(URL.createObjectURL(selected[0]));
+      } else {
+        setPreviewUrl(null);
+      }
       setVideoMeta(null); // Reset metadata
     }
   };
@@ -58,7 +63,7 @@ export default function UploadCenter() {
   const { uploadVideo } = useVideoStore();
 
   const handleSubmit = async () => {
-    if (importMode === 'LOCAL' && !file) {
+    if (importMode === 'LOCAL' && files.length === 0) {
       alert("Pilih file video terlebih dahulu!");
       return;
     }
@@ -67,9 +72,10 @@ export default function UploadCenter() {
       return;
     }
 
-    if (importMode === 'LOCAL' && file) {
-      if (file.size > 10 * 1024 * 1024 * 1024) {
-        alert("Ukuran file melebihi batas 10GB!");
+    if (importMode === 'LOCAL') {
+      const tooLarge = files.find(f => f.size > 10 * 1024 * 1024 * 1024);
+      if (tooLarge) {
+        alert("Ada ukuran file melebihi batas 10GB!");
         return;
       }
     }
@@ -78,24 +84,30 @@ export default function UploadCenter() {
     setUploadProgress(0);
 
     try {
-      if (importMode === 'LOCAL' && file) {
-        await uploadVideo(file, {
-          userId,
-          workspaceId,
-          aspect,
-          intent,
-          lang,
-          layoutMode,
-          captions: enableCaptions,
-          subtitleStyle: enableCaptions ? subtitleStyle : undefined,
-          broll: enableBroll,
-          topic: enableBroll ? brollKeyword : undefined,
-          timeStart: timeStart || undefined,
-          timeEnd: timeEnd || undefined,
-          onProgress: (progress: number) => {
-            setUploadProgress(progress);
-          }
-        });
+      if (importMode === 'LOCAL') {
+        const totalFiles = files.length;
+        for (let i = 0; i < totalFiles; i++) {
+          const currentFile = files[i];
+          await uploadVideo(currentFile, {
+            userId,
+            workspaceId,
+            aspect,
+            intent,
+            lang,
+            layoutMode,
+            captions: enableCaptions,
+            subtitleStyle: enableCaptions ? subtitleStyle : undefined,
+            broll: enableBroll,
+            topic: enableBroll ? brollKeyword : undefined,
+            timeStart: timeStart || undefined,
+            timeEnd: timeEnd || undefined,
+            onProgress: (progress: number) => {
+              const baseProgress = (i / totalFiles) * 100;
+              const currentProgress = (progress / totalFiles);
+              setUploadProgress(Math.round(baseProgress + currentProgress));
+            }
+          });
+        }
         
         setTimeout(() => router.push('/library'), 1000);
 
@@ -167,12 +179,13 @@ export default function UploadCenter() {
                   <input 
                     type="file" 
                     accept="video/*" 
+                    multiple
                     onChange={handleFileChange}
                     className="absolute inset-0 w-full h-full opacity-0 cursor-pointer z-10"
                     title=""
                   />
                   
-                  {!previewUrl ? (
+                  {files.length === 0 ? (
                     <>
                       <div className="w-20 h-20 bg-primary border-4 border-black mx-auto mb-6 flex items-center justify-center shadow-[4px_4px_0px_0px_rgba(0,0,0,1)] group-hover:scale-110 transition-transform">
                         <UploadCloud className="w-10 h-10 text-black" strokeWidth={2.5} />
@@ -181,10 +194,10 @@ export default function UploadCenter() {
                         Drag & Drop atau Klik Disini
                       </h2>
                       <p className="font-bold text-gray-600">
-                        Support: MP4, MOV, MKV (Max 10GB)
+                        Support: MP4, MOV, MKV (Max 10GB per file)
                       </p>
                     </>
-                  ) : (
+                  ) : files.length === 1 && previewUrl ? (
                     <div className="relative z-20 w-full flex flex-col items-center justify-center gap-6 text-left cursor-default max-w-3xl mx-auto">
                       {/* Video Player Section */}
                       <div className="w-full flex flex-col items-center">
@@ -199,14 +212,14 @@ export default function UploadCenter() {
                         
                         <div className="w-full flex flex-col sm:flex-row justify-between items-center sm:items-end gap-4 mb-2">
                           <div className="flex-1 min-w-0 text-center sm:text-left w-full">
-                            <h2 className="text-xl font-black uppercase mb-1 truncate w-full" title={file?.name}>{file?.name}</h2>
-                            <p className="font-bold text-gray-600">{(file!.size / (1024*1024)).toFixed(2)} MB</p>
+                            <h2 className="text-xl font-black uppercase mb-1 truncate w-full" title={files[0].name}>{files[0].name}</h2>
+                            <p className="font-bold text-gray-600">{(files[0].size / (1024*1024)).toFixed(2)} MB</p>
                           </div>
                           <button 
                             onClick={(e) => { 
                               e.preventDefault(); 
                               e.stopPropagation(); 
-                              setFile(null); 
+                              setFiles([]); 
                               setPreviewUrl(null); 
                               setVideoMeta(null);
                             }}
@@ -242,6 +255,57 @@ export default function UploadCenter() {
                           </div>
                         </div>
                       )}
+                    </div>
+                  ) : (
+                    <div className="relative z-20 w-full flex flex-col items-start justify-start gap-4 text-left cursor-default max-w-3xl mx-auto">
+                      <div className="flex justify-between items-center w-full mb-4">
+                        <h2 className="text-2xl font-black uppercase">{files.length} File Terpilih</h2>
+                        <button 
+                          onClick={(e) => { 
+                            e.preventDefault(); 
+                            e.stopPropagation(); 
+                            setFiles([]); 
+                            setPreviewUrl(null);
+                          }}
+                          className="bg-primary px-4 py-2 border-4 border-black font-black uppercase shadow-[4px_4px_0px_0px_rgba(0,0,0,1)] hover:translate-y-[2px] hover:translate-x-[2px] hover:shadow-none transition-all text-sm"
+                        >
+                          Hapus Semua
+                        </button>
+                      </div>
+                      <div className="w-full flex flex-col gap-3 max-h-[300px] overflow-y-auto pr-2">
+                        {files.map((f, i) => (
+                          <div key={i} className="flex items-center justify-between p-4 bg-white border-4 border-black shadow-[4px_4px_0px_0px_rgba(0,0,0,1)]">
+                            <div className="flex items-center gap-3 overflow-hidden">
+                              <div className="w-10 h-10 bg-secondary border-2 border-black flex items-center justify-center shrink-0">
+                                <MonitorPlay className="w-5 h-5 text-black" />
+                              </div>
+                              <div className="flex flex-col overflow-hidden">
+                                <span className="font-black uppercase truncate max-w-[200px] sm:max-w-[400px]" title={f.name}>{f.name}</span>
+                                <span className="text-xs font-bold text-gray-500">{(f.size / (1024*1024)).toFixed(2)} MB</span>
+                              </div>
+                            </div>
+                            <button 
+                              onClick={(e) => {
+                                e.preventDefault();
+                                e.stopPropagation();
+                                const newFiles = files.filter((_, index) => index !== i);
+                                setFiles(newFiles);
+                                if (newFiles.length === 1) {
+                                  setPreviewUrl(URL.createObjectURL(newFiles[0]));
+                                }
+                              }}
+                              className="w-8 h-8 flex items-center justify-center bg-red-400 border-2 border-black hover:bg-red-500 transition-colors shrink-0 font-black text-white"
+                            >
+                              X
+                            </button>
+                          </div>
+                        ))}
+                      </div>
+                      <div className="w-full bg-accent-teal border-4 border-black p-4 mt-2 text-center shadow-[4px_4px_0px_0px_rgba(0,0,0,1)]">
+                        <p className="font-black text-black uppercase flex items-center justify-center gap-2">
+                          <Sparkles className="w-5 h-5" /> AI Akan Memproses Video Ini Satu per Satu
+                        </p>
+                      </div>
                     </div>
                   )}
                 </div>
@@ -319,11 +383,21 @@ export default function UploadCenter() {
 
           {/* AI Settings Column */}
           <div className="bg-primary border-4 border-black shadow-neu p-6 flex flex-col h-fit">
-            <div className="flex items-center gap-3 mb-6 border-b-4 border-black pb-4">
-              <div className="w-10 h-10 bg-white border-4 border-black flex items-center justify-center shadow-[2px_2px_0px_0px_rgba(0,0,0,1)]">
-                <Settings2 className="w-6 h-6 text-black" strokeWidth={3} />
+            <div className="flex items-center justify-between gap-3 mb-6 border-b-4 border-black pb-4">
+              <div className="flex items-center gap-3">
+                <div className="w-10 h-10 bg-white border-4 border-black flex items-center justify-center shadow-[2px_2px_0px_0px_rgba(0,0,0,1)]">
+                  <Settings2 className="w-6 h-6 text-black" strokeWidth={3} />
+                </div>
+                <h3 className="font-black text-2xl uppercase">Konfigurasi AI</h3>
               </div>
-              <h3 className="font-black text-2xl uppercase">Konfigurasi AI</h3>
+              <button 
+                onClick={() => setShowServerInfo(true)}
+                className="bg-white border-2 border-black p-2 hover:bg-black hover:text-white transition-colors shadow-[2px_2px_0px_0px_rgba(0,0,0,1)] flex items-center gap-1"
+                title="Rekomendasi Server"
+              >
+                <MonitorPlay className="w-4 h-4" />
+                <span className="text-[10px] font-black uppercase">Server Info</span>
+              </button>
             </div>
             
             <div className="space-y-6">
@@ -453,6 +527,70 @@ export default function UploadCenter() {
         </div>
 
       </div>
+
+      {/* Server Info Modal */}
+      {showServerInfo && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/80 backdrop-blur-sm p-4">
+          <div className="bg-white border-4 border-black shadow-[8px_8px_0px_0px_rgba(255,204,0,1)] w-full max-w-2xl relative flex flex-col p-8">
+            <button 
+              onClick={() => setShowServerInfo(false)}
+              className="absolute top-4 right-4 w-10 h-10 bg-primary border-4 border-black text-black font-black text-xl flex items-center justify-center hover:scale-110 transition-transform shadow-[4px_4px_0px_0px_rgba(0,0,0,1)]"
+            >
+              X
+            </button>
+            <div className="flex items-center gap-4 mb-6">
+              <div className="w-16 h-16 bg-accent-blue border-4 border-black flex items-center justify-center shadow-[4px_4px_0px_0px_rgba(0,0,0,1)]">
+                <MonitorPlay className="w-8 h-8 text-black" strokeWidth={2.5} />
+              </div>
+              <div>
+                <h2 className="text-2xl font-black uppercase">Hardware Requirements</h2>
+                <p className="font-bold text-gray-600">Rekomendasi spesifikasi server AI Engine</p>
+              </div>
+            </div>
+
+            <div className="space-y-4 max-h-[60vh] overflow-y-auto pr-2">
+              <div className="bg-white border-4 border-black p-4 shadow-[4px_4px_0px_0px_rgba(0,0,0,1)]">
+                <h3 className="font-black text-lg uppercase bg-[#FFEDF4] inline-block px-2 border-2 border-black mb-2">1. Minimum (Dev/Coba-coba)</h3>
+                <ul className="font-bold text-sm text-gray-700 list-disc list-inside space-y-1">
+                  <li><strong>CPU:</strong> 4-Core (Intel i5 / Ryzen 5)</li>
+                  <li><strong>RAM:</strong> 8 GB</li>
+                  <li><strong>Storage:</strong> 50 GB SSD</li>
+                  <li><strong>GPU:</strong> Tidak wajib (Menggunakan CPU fallback lambat)</li>
+                </ul>
+              </div>
+
+              <div className="bg-white border-4 border-black p-4 shadow-[4px_4px_0px_0px_rgba(0,0,0,1)] relative overflow-hidden">
+                <div className="absolute top-0 right-0 bg-[#F5A623] px-3 py-1 font-black text-xs uppercase border-b-4 border-l-4 border-black">Direkomendasikan</div>
+                <h3 className="font-black text-lg uppercase bg-[#FFF8EB] inline-block px-2 border-2 border-black mb-2">2. Standar (Skala Kecil)</h3>
+                <ul className="font-bold text-sm text-gray-700 list-disc list-inside space-y-1">
+                  <li><strong>CPU:</strong> 8-Core (Intel i7 / Ryzen 7)</li>
+                  <li><strong>RAM:</strong> 16 GB - 32 GB</li>
+                  <li><strong>Storage:</strong> 250 GB NVMe SSD</li>
+                  <li><strong>GPU:</strong> NVIDIA RTX 3060 / T4 (VRAM 8GB+)</li>
+                </ul>
+              </div>
+
+              <div className="bg-white border-4 border-black p-4 shadow-[4px_4px_0px_0px_rgba(0,0,0,1)]">
+                <h3 className="font-black text-lg uppercase bg-accent-teal inline-block px-2 border-2 border-black mb-2">3. Enterprise (Super Cepat)</h3>
+                <ul className="font-bold text-sm text-gray-700 list-disc list-inside space-y-1">
+                  <li><strong>CPU:</strong> 16-Core+ (AMD EPYC / Intel Xeon)</li>
+                  <li><strong>RAM:</strong> 64 GB+</li>
+                  <li><strong>Storage:</strong> 1 TB+ NVMe SSD</li>
+                  <li><strong>GPU:</strong> NVIDIA RTX 4090, A10g, atau A100</li>
+                </ul>
+              </div>
+
+              <div className="bg-black text-white p-4 border-4 border-black mt-4">
+                <p className="font-bold text-sm text-center">
+                  💡 Sistem kami telah diprogram otomatis menyesuaikan: Jika Anda tidak memiliki GPU, <b>CPU</b> akan digunakan. Kecepatan pemrosesan akan 5-10x lebih lama.
+                </p>
+              </div>
+            </div>
+            
+          </div>
+        </div>
+      )}
+
     </DashboardLayout>
   );
 }

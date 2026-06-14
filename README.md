@@ -328,6 +328,32 @@ python api.py
 
 ---
 
+## 🖥️ Rekomendasi Server (Hardware Requirements)
+
+Mengingat aplikasi ini menjalankan **AI Video Processing** dan **Computer Vision** (FFmpeg, Whisper AI, Mediapipe Face Tracking), performa server sangat menentukan seberapa cepat antrean diproses.
+
+### Minimum (Untuk Development/Coba-coba)
+- **CPU**: 4-Core Processor (Intel i5 / AMD Ryzen 5)
+- **RAM**: 8 GB
+- **Storage**: 50 GB SSD
+- **GPU**: Tidak wajib (akan menggunakan CPU *rendering*, cukup lambat)
+
+### Rekomendasi Standar (Untuk Produksi Skala Kecil)
+- **CPU**: 8-Core Processor (Intel i7 / AMD Ryzen 7 atau sekelas AWS t3.xlarge)
+- **RAM**: 16 GB - 32 GB
+- **Storage**: 250 GB NVMe SSD
+- **GPU**: NVIDIA GPU (RTX 3060 / T4) dengan VRAM 8GB+ (Untuk akselerasi Faster-Whisper & FFmpeg NVENC)
+
+### Rekomendasi Enterprise (Produksi Skala Besar & Cepat)
+- **CPU**: 16-Core+ (AMD EPYC / Intel Xeon)
+- **RAM**: 64 GB+
+- **Storage**: 1 TB+ NVMe SSD (dan terhubung ke Cloud Storage seperti S3/R2)
+- **GPU**: NVIDIA RTX 4090, A10g, atau A100 (Untuk memproses banyak model secara paralel tanpa bottleneck)
+
+> **Catatan:** Jika Anda menjalankan tanpa GPU, sistem otomatis menggunakan *CPU fallback*, namun proses pembuatan *subtitle* dan *rendering* video akan berjalan 5x - 10x lebih lama.
+
+---
+
 ## 🗺️ Roadmap
 
 - [x] Dashboard & Analytics

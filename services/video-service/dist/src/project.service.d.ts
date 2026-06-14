@@ -45,9 +45,9 @@ export declare class ProjectService {
         })[];
     } & {
         id: string;
+        status: string;
         userId: string;
         workspaceId: string;
-        status: string;
         createdAt: Date;
         updatedAt: Date;
         name: string;
@@ -93,9 +93,9 @@ export declare class ProjectService {
         })[];
     } & {
         id: string;
+        status: string;
         userId: string;
         workspaceId: string;
-        status: string;
         createdAt: Date;
         updatedAt: Date;
         name: string;
@@ -141,9 +141,9 @@ export declare class ProjectService {
         })[];
     } & {
         id: string;
+        status: string;
         userId: string;
         workspaceId: string;
-        status: string;
         createdAt: Date;
         updatedAt: Date;
         name: string;

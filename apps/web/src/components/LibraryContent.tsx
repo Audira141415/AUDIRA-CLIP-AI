@@ -583,8 +583,23 @@ export default function LibraryContent({ activeTab }: { activeTab: string }) {
                         </div>
                       </div>
                     ) : (
-                      <div className={`text-xs font-black uppercase inline-block px-2 py-1 border-2 border-black shadow-[2px_2px_0px_0px_rgba(0,0,0,1)] mt-2 ${item.status === 'FAILED' ? 'bg-warning text-black' : 'bg-white text-black'}`}>
-                        {item.status || 'READY'}
+                      <div className="flex items-center justify-between mt-2">
+                        <div className={`text-xs font-black uppercase inline-block px-2 py-1 border-2 border-black shadow-[2px_2px_0px_0px_rgba(0,0,0,1)] ${item.status === 'FAILED' ? 'bg-warning text-black' : 'bg-white text-black'}`}>
+                          {item.status || 'READY'}
+                        </div>
+                        {item.url && item.status !== 'FAILED' && (
+                          <a 
+                            href={getMediaUrl(item.url) || '#'}
+                            download={`${title}.mp4`}
+                            target="_blank"
+                            rel="noreferrer"
+                            className="bg-[#00E5FF] hover:bg-primary border-2 border-black text-black font-black text-[10px] uppercase px-2 py-1 shadow-[2px_2px_0px_0px_rgba(0,0,0,1)] hover:translate-y-[1px] hover:translate-x-[1px] hover:shadow-none transition-all flex items-center gap-1"
+                            onClick={(e) => e.stopPropagation()}
+                          >
+                            <svg className="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="3" d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-4l-4 4m0 0l-4-4m4 4V4" /></svg>
+                            UNDUH
+                          </a>
+                        )}
                       </div>
                     )}
                   </div>
